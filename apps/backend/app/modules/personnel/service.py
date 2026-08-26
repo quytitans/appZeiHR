@@ -1,0 +1,136 @@
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session, selectinload
+
+from app.models.personnel import Department, Employee, EmployeeDocument, Position
+from app.modules.personnel.schemas import (
+    DepartmentCreate,
+    EmployeeCreate,
+    EmployeeUpdate,
+    PositionCreate,
+)
+
+EMPLOYMENT_CONTRACT_DOC_TYPE = "employment_contract"
+
+SORTABLE_FIELDS = {
+    "full_name": Employee.full_name,
+    "start_date": Employee.start_date,
+}
+
+
+def list_departments(db: Session) -> list[Department]:
+    return db.query(Department).all()
+
+
+def create_department(db: Session, payload: DepartmentCreate) -> Department:
+    department = Department(**payload.model_dump())
+    db.add(department)
+    db.commit()
+    db.refresh(department)
+    return department
+
+
+def list_positions(db: Session) -> list[Position]:
+    return db.query(Position).all()
+
+
+def create_position(db: Session, payload: PositionCreate) -> Position:
+    position = Position(**payload.model_dump())
+    db.add(position)
+    db.commit()
+    db.refresh(position)
+    return position
+
+
+def _employee_query(db: Session):
+    return db.query(Employee).options(
+        selectinload(Employee.department),
+        selectinload(Employee.position),
+        selectinload(Employee.documents),
+    )
+
+
+def list_employees(
+    db: Session,
+    search: str | None,
+    page: int,
+    page_size: int,
+    sort_by: str,
+    sort_dir: str,
+) -> tuple[list[Employee], int]:
+    """Tìm kiếm đa trường (mã NV, họ tên, email, CCCD), không phân biệt hoa/thường,
+    khớp một phần chuỗi - SRS 3.1.2.C."""
+
+    query = _employee_query(db)
+
+    if search:
+        pattern = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Employee.employee_code).like(pattern),
+                func.lower(Employee.full_name).like(pattern),
+                func.lower(Employee.company_email).like(pattern),
+                func.lower(Employee.national_id).like(pattern),
+            )
+        )
+
+    total = query.order_by(None).with_entities(func.count(Employee.id)).scalar() or 0
+
+    sort_column = SORTABLE_FIELDS.get(sort_by, Employee.full_name)
+    sort_column = sort_column.desc() if sort_dir == "desc" else sort_column.asc()
+
+    items = (
+        query.order_by(sort_column)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return items, total
+
+
+def get_employee(db: Session, employee_id: int) -> Employee | None:
+    return _employee_query(db).filter(Employee.id == employee_id).first()
+
+
+def employee_code_exists(db: Session, employee_code: str, exclude_id: int | None = None) -> bool:
+    query = db.query(Employee).filter(Employee.employee_code == employee_code)
+    if exclude_id:
+        query = query.filter(Employee.id != exclude_id)
+    return db.query(query.exists()).scalar()
+
+
+def national_id_exists(db: Session, national_id: str, exclude_id: int | None = None) -> bool:
+    query = db.query(Employee).filter(Employee.national_id == national_id)
+    if exclude_id:
+        query = query.filter(Employee.id != exclude_id)
+    return db.query(query.exists()).scalar()
+
+
+def create_employee(db: Session, payload: EmployeeCreate) -> Employee:
+    employee = Employee(**payload.model_dump())
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
+    return get_employee(db, employee.id)  # type: ignore[return-value]
+
+
+def update_employee(db: Session, employee: Employee, payload: EmployeeUpdate) -> Employee:
+    for field, value in payload.model_dump().items():
+        setattr(employee, field, value)
+    db.commit()
+    db.refresh(employee)
+    return get_employee(db, employee.id)  # type: ignore[return-value]
+
+
+def add_contract_document(
+    db: Session, employee_id: int, file_name: str, file_url: str
+) -> EmployeeDocument:
+    document = EmployeeDocument(
+        employee_id=employee_id,
+        doc_type=EMPLOYMENT_CONTRACT_DOC_TYPE,
+        file_name=file_name,
+        file_url=file_url,
+    )
+    db.add(document)
+    db.commit()
+    db.refresh(document)
+    return document
