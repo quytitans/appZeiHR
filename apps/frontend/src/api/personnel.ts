@@ -53,13 +53,17 @@ export async function updateEmployee(
   return data;
 }
 
-export async function uploadContractDocument(employeeId: number, file: File): Promise<Employee> {
+export async function uploadContractDocument(
+  employeeId: number,
+  file: File,
+  replace = false,
+): Promise<Employee> {
   const formData = new FormData();
   formData.append("file", file);
   const { data } = await apiClient.post<Employee>(
     `/personnel/employees/${employeeId}/contract-document`,
     formData,
-    { headers: { "Content-Type": "multipart/form-data" } },
+    { headers: { "Content-Type": "multipart/form-data" }, params: { replace } },
   );
   return data;
 }

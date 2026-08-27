@@ -41,3 +41,10 @@ def save_pdf_upload(file: UploadFile, subdir: str) -> tuple[str, str]:
     original_name = file.filename or stored_name
     file_url = f"/files/{subdir}/{stored_name}"
     return original_name, file_url
+
+
+def delete_stored_file(file_url: str) -> None:
+    """Xóa file đã lưu qua save_pdf_upload, dùng khi "thay thế" tài liệu cũ."""
+    relative_path = file_url.removeprefix("/files/")
+    path = Path(settings.UPLOAD_DIR) / relative_path
+    path.unlink(missing_ok=True)

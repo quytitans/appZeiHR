@@ -4,6 +4,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app.common.storage import delete_stored_file
 from app.models.personnel import Department, Employee, EmployeeDocument, Position
 from app.modules.personnel.schemas import (
     DepartmentCreate,
@@ -213,8 +214,26 @@ def update_employee(db: Session, employee: Employee, payload: EmployeeUpdate) ->
 
 
 def add_contract_document(
-    db: Session, employee_id: int, file_name: str, file_url: str
+    db: Session, employee_id: int, file_name: str, file_url: str, replace: bool = False
 ) -> EmployeeDocument:
+    """Thêm hợp đồng lao động mới. Nếu replace=True, xóa hẳn (DB + file trên đĩa) các
+    hợp đồng cũ trước khi thêm - dùng cho lựa chọn "Thay thế" ở màn chi tiết nhân viên.
+    Nếu replace=False ("Bổ sung"), giữ nguyên tài liệu cũ, chỉ thêm bản mới (bản mới nhất
+    theo uploaded_at sẽ hiển thị là hợp đồng hiện hành - xem Employee.contract_document)."""
+
+    if replace:
+        old_documents = (
+            db.query(EmployeeDocument)
+            .filter(
+                EmployeeDocument.employee_id == employee_id,
+                EmployeeDocument.doc_type == EMPLOYMENT_CONTRACT_DOC_TYPE,
+            )
+            .all()
+        )
+        for old_document in old_documents:
+            delete_stored_file(old_document.file_url)
+            db.delete(old_document)
+
     document = EmployeeDocument(
         employee_id=employee_id,
         doc_type=EMPLOYMENT_CONTRACT_DOC_TYPE,

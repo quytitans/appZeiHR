@@ -181,7 +181,12 @@ def update_employee(employee_id: int, payload: EmployeeUpdate, db: Session = Dep
     dependencies=[Depends(require_roles(*MANAGE_ROLES))],
 )
 def upload_contract_document(
-    employee_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)
+    employee_id: int,
+    file: UploadFile = File(...),
+    replace: bool = Query(
+        False, description="True = xóa hợp đồng cũ (Thay thế), False = giữ lại (Bổ sung)"
+    ),
+    db: Session = Depends(get_db),
 ):
     """Tải lên file hợp đồng lao động PDF cho nhân viên - SRS 3.1.2.A/D."""
     employee = service.get_employee(db, employee_id)
@@ -189,5 +194,5 @@ def upload_contract_document(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy nhân viên")
 
     file_name, file_url = save_pdf_upload(file, subdir="employee_documents")
-    service.add_contract_document(db, employee_id, file_name, file_url)
+    service.add_contract_document(db, employee_id, file_name, file_url, replace=replace)
     return service.get_employee(db, employee_id)

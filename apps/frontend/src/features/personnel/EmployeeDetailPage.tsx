@@ -2,16 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import {
-  getEmployee,
-  listDepartments,
-  listPositions,
-  updateEmployee,
-  uploadContractDocument,
-} from "@/api/personnel";
+import { getEmployee, listDepartments, listPositions, updateEmployee } from "@/api/personnel";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { ContractUploadSection } from "@/features/personnel/components/ContractUploadSection";
 import { ContractViewerModal } from "@/features/personnel/components/ContractViewerModal";
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
 import { EmployeeFormFields } from "@/features/personnel/components/EmployeeFormFields";
@@ -57,7 +52,6 @@ export function EmployeeDetailPage() {
   const canManage = !!user && MANAGE_ROLES.includes(user.role);
 
   const [form, setForm] = useState<EmployeeFormValues>(EMPTY_FORM);
-  const [contractFile, setContractFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [showContractViewer, setShowContractViewer] = useState(false);
@@ -85,8 +79,8 @@ export function EmployeeDetailPage() {
   }
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const updated = await updateEmployee(employeeId, {
+    mutationFn: () =>
+      updateEmployee(employeeId, {
         full_name: form.full_name.trim(),
         company_email: form.company_email.trim() || null,
         national_id: form.national_id.trim() || null,
@@ -96,14 +90,7 @@ export function EmployeeDetailPage() {
         department_id: form.department_id ? Number(form.department_id) : null,
         position_id: form.position_id ? Number(form.position_id) : null,
         start_date: form.start_date || null,
-      });
-
-      if (contractFile) {
-        await uploadContractDocument(employeeId, contractFile);
-        setContractFile(null);
-      }
-      return updated;
-    },
+      }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["employee", employeeId], updated);
       queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -209,47 +196,6 @@ export function EmployeeDetailPage() {
                 disabled={!canManage}
               />
 
-              <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Hợp đồng lao động
-                </h3>
-                {employee.contract_document ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowContractViewer(true)}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:text-brand-800 hover:underline"
-                  >
-                    <Icon name="file-pdf" className="h-4 w-4" />
-                    Xem hợp đồng hiện tại ({employee.contract_document.file_name})
-                  </button>
-                ) : (
-                  <p className="text-sm text-slate-400">Chưa có file hợp đồng đính kèm.</p>
-                )}
-
-                {canManage && (
-                  <div className="mt-3">
-                    <label
-                      htmlFor="contract_file"
-                      className="flex cursor-pointer items-center justify-between rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm text-slate-500 hover:border-brand-400 hover:bg-brand-50/40"
-                    >
-                      <span className="truncate">
-                        {contractFile
-                          ? contractFile.name
-                          : "Thay thế / tải lên hợp đồng mới (PDF, tối đa 10MB)"}
-                      </span>
-                      <span className="shrink-0 font-medium text-brand-700">Chọn file</span>
-                    </label>
-                    <input
-                      id="contract_file"
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      onChange={(e) => setContractFile(e.target.files?.[0] ?? null)}
-                    />
-                  </div>
-                )}
-              </div>
-
               {canManage && (
                 <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                   <Button type="submit" disabled={mutation.isPending}>
@@ -258,6 +204,14 @@ export function EmployeeDetailPage() {
                 </div>
               )}
             </form>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <ContractUploadSection
+                employee={employee}
+                canManage={canManage}
+                onViewContract={() => setShowContractViewer(true)}
+              />
+            </div>
           </>
         )}
       </div>
