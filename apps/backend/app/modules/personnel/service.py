@@ -7,9 +7,11 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.personnel import Department, Employee, EmployeeDocument, Position
 from app.modules.personnel.schemas import (
     DepartmentCreate,
+    DepartmentUpdate,
     EmployeeCreate,
     EmployeeUpdate,
     PositionCreate,
+    PositionUpdate,
 )
 
 EMPLOYMENT_CONTRACT_DOC_TYPE = "employment_contract"
@@ -22,7 +24,18 @@ SORTABLE_FIELDS = {
 
 
 def list_departments(db: Session) -> list[Department]:
-    return db.query(Department).all()
+    return db.query(Department).order_by(Department.name).all()
+
+
+def get_department(db: Session, department_id: int) -> Department | None:
+    return db.get(Department, department_id)
+
+
+def department_code_exists(db: Session, code: str, exclude_id: int | None = None) -> bool:
+    query = db.query(Department).filter(Department.code == code)
+    if exclude_id:
+        query = query.filter(Department.id != exclude_id)
+    return db.query(query.exists()).scalar()
 
 
 def create_department(db: Session, payload: DepartmentCreate) -> Department:
@@ -33,8 +46,30 @@ def create_department(db: Session, payload: DepartmentCreate) -> Department:
     return department
 
 
+def update_department(db: Session, department: Department, payload: DepartmentUpdate) -> Department:
+    for field, value in payload.model_dump().items():
+        setattr(department, field, value)
+    db.commit()
+    db.refresh(department)
+    return department
+
+
+def department_in_use(db: Session, department_id: int) -> bool:
+    query = db.query(Employee).filter(Employee.department_id == department_id)
+    return db.query(query.exists()).scalar()
+
+
+def delete_department(db: Session, department: Department) -> None:
+    db.delete(department)
+    db.commit()
+
+
 def list_positions(db: Session) -> list[Position]:
-    return db.query(Position).all()
+    return db.query(Position).order_by(Position.title).all()
+
+
+def get_position(db: Session, position_id: int) -> Position | None:
+    return db.get(Position, position_id)
 
 
 def create_position(db: Session, payload: PositionCreate) -> Position:
@@ -43,6 +78,24 @@ def create_position(db: Session, payload: PositionCreate) -> Position:
     db.commit()
     db.refresh(position)
     return position
+
+
+def update_position(db: Session, position: Position, payload: PositionUpdate) -> Position:
+    for field, value in payload.model_dump().items():
+        setattr(position, field, value)
+    db.commit()
+    db.refresh(position)
+    return position
+
+
+def position_in_use(db: Session, position_id: int) -> bool:
+    query = db.query(Employee).filter(Employee.position_id == position_id)
+    return db.query(query.exists()).scalar()
+
+
+def delete_position(db: Session, position: Position) -> None:
+    db.delete(position)
+    db.commit()
 
 
 def _employee_query(db: Session):

@@ -5,7 +5,7 @@ export interface ModuleConfig {
   title: string;
   description: string;
   path: string;
-  icon: "personnel" | "contracts" | "benefits" | "attendance" | "users";
+  icon: "personnel" | "contracts" | "benefits" | "attendance" | "users" | "database";
   /** Vai trò được phép truy cập, khớp bảng phân quyền SRS mục 2.1 */
   roles: Role[];
 }
@@ -42,5 +42,13 @@ export const MODULES: ModuleConfig[] = [
     path: "/admin/users",
     icon: "users",
     roles: ["system_admin"],
+  },
+  {
+    key: "master-data",
+    title: "Master Data",
+    description: "Quản lý dữ liệu nền tảng dùng chung: phòng ban, chức vụ...",
+    path: "/master-data",
+    icon: "database",
+    roles: ["hr_admin", "system_admin"],
   },
 ];

@@ -17,7 +17,10 @@ export type IconName =
   | "upload"
   | "spinner"
   | "file-pdf"
-  | "sort";
+  | "sort"
+  | "edit"
+  | "trash"
+  | "database";
 
 const paths: Record<IconName, JSX.Element> = {
   personnel: (
@@ -95,6 +98,25 @@ const paths: Record<IconName, JSX.Element> = {
     </>
   ),
   sort: <path d="M8 9l4-4.5L16 9M8 15l4 4.5 4-4.5" />,
+  edit: (
+    <>
+      <path d="M15.5 4.5 19.5 8.5 8 20H4v-4Z" />
+      <path d="M13.5 6.5l4 4" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 .75 12a1 1 0 0 0 1 .95h6.5a1 1 0 0 0 1-.95L18 7" />
+      <path d="M10 11v6M14 11v6" />
+    </>
+  ),
+  database: (
+    <>
+      <ellipse cx="12" cy="6" rx="7.5" ry="3" />
+      <path d="M4.5 6v12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6" />
+      <path d="M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3" />
+    </>
+  ),
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {

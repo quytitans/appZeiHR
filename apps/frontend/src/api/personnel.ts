@@ -69,7 +69,44 @@ export async function listDepartments(): Promise<Department[]> {
   return data;
 }
 
+export interface DepartmentPayload {
+  name: string;
+  code: string;
+}
+
+export async function createDepartment(payload: DepartmentPayload): Promise<Department> {
+  const { data } = await apiClient.post<Department>("/personnel/departments", payload);
+  return data;
+}
+
+export async function updateDepartment(id: number, payload: DepartmentPayload): Promise<Department> {
+  const { data } = await apiClient.put<Department>(`/personnel/departments/${id}`, payload);
+  return data;
+}
+
+export async function deleteDepartment(id: number): Promise<void> {
+  await apiClient.delete(`/personnel/departments/${id}`);
+}
+
 export async function listPositions(): Promise<Position[]> {
   const { data } = await apiClient.get<Position[]>("/personnel/positions");
   return data;
+}
+
+export interface PositionPayload {
+  title: string;
+}
+
+export async function createPosition(payload: PositionPayload): Promise<Position> {
+  const { data } = await apiClient.post<Position>("/personnel/positions", payload);
+  return data;
+}
+
+export async function updatePosition(id: number, payload: PositionPayload): Promise<Position> {
+  const { data } = await apiClient.put<Position>(`/personnel/positions/${id}`, payload);
+  return data;
+}
+
+export async function deletePosition(id: number): Promise<void> {
+  await apiClient.delete(`/personnel/positions/${id}`);
 }

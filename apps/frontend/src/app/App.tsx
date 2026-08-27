@@ -6,6 +6,7 @@ import { LoginPage } from "@/features/auth/LoginPage";
 import { BenefitsPage } from "@/features/benefits/BenefitsPage";
 import { ContractsPage } from "@/features/contracts/ContractsPage";
 import { HomePage } from "@/features/dashboard/HomePage";
+import { MasterDataPage } from "@/features/master-data/MasterDataPage";
 import { EmployeeDetailPage } from "@/features/personnel/EmployeeDetailPage";
 import { PersonnelPage } from "@/features/personnel/PersonnelPage";
 
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/benefits" element={<BenefitsPage />} />
       <Route path="/attendance" element={<AttendancePage />} />
       <Route path="/admin/users" element={<UsersPage />} />
+      <Route path="/master-data" element={<MasterDataPage />} />
     </Routes>
   );
 }

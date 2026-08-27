@@ -5,6 +5,7 @@ import { createEmployee, listDepartments, listPositions, uploadContractDocument 
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { EmployeeFormFields } from "@/features/personnel/components/EmployeeFormFields";
+import { getErrorDetail } from "@/lib/errors";
 import type { EmployeeFormValues } from "@/types/personnel";
 
 interface EmployeeFormModalProps {
@@ -23,15 +24,6 @@ const EMPTY_FORM: EmployeeFormValues = {
   position_id: "",
   start_date: "",
 };
-
-function isAxiosErrorWithDetail(err: unknown): err is { response: { data: { detail: string } } } {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "response" in err &&
-    typeof (err as { response?: unknown }).response === "object"
-  );
-}
 
 export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps) {
   const queryClient = useQueryClient();
@@ -74,8 +66,7 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
       onCreated();
     },
     onError: (err) => {
-      const detail = isAxiosErrorWithDetail(err) ? err.response.data.detail : null;
-      setError(detail ?? "Không thể tạo hồ sơ nhân sự. Vui lòng thử lại.");
+      setError(getErrorDetail(err) ?? "Không thể tạo hồ sơ nhân sự. Vui lòng thử lại.");
     },
   });
 

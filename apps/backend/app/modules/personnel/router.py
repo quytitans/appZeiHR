@@ -11,12 +11,14 @@ from app.modules.personnel import service
 from app.modules.personnel.schemas import (
     DepartmentCreate,
     DepartmentOut,
+    DepartmentUpdate,
     EmployeeCreate,
     EmployeeOut,
     EmployeePageOut,
     EmployeeUpdate,
     PositionCreate,
     PositionOut,
+    PositionUpdate,
 )
 
 router = APIRouter(prefix="/personnel", tags=["personnel"], dependencies=[Depends(get_current_user)])
@@ -36,7 +38,40 @@ def list_departments(db: Session = Depends(get_db)):
     dependencies=[Depends(require_roles(*MANAGE_ROLES))],
 )
 def create_department(payload: DepartmentCreate, db: Session = Depends(get_db)):
+    if service.department_code_exists(db, payload.code):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Mã phòng ban đã tồn tại")
     return service.create_department(db, payload)
+
+
+@router.put(
+    "/departments/{department_id}",
+    response_model=DepartmentOut,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def update_department(department_id: int, payload: DepartmentUpdate, db: Session = Depends(get_db)):
+    department = service.get_department(db, department_id)
+    if not department:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy phòng ban")
+    if service.department_code_exists(db, payload.code, exclude_id=department_id):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Mã phòng ban đã tồn tại")
+    return service.update_department(db, department, payload)
+
+
+@router.delete(
+    "/departments/{department_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def delete_department(department_id: int, db: Session = Depends(get_db)):
+    department = service.get_department(db, department_id)
+    if not department:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy phòng ban")
+    if service.department_in_use(db, department_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Không thể xóa: đang có nhân viên thuộc phòng ban này",
+        )
+    service.delete_department(db, department)
 
 
 @router.get("/positions", response_model=list[PositionOut])
@@ -52,6 +87,35 @@ def list_positions(db: Session = Depends(get_db)):
 )
 def create_position(payload: PositionCreate, db: Session = Depends(get_db)):
     return service.create_position(db, payload)
+
+
+@router.put(
+    "/positions/{position_id}",
+    response_model=PositionOut,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def update_position(position_id: int, payload: PositionUpdate, db: Session = Depends(get_db)):
+    position = service.get_position(db, position_id)
+    if not position:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy chức vụ")
+    return service.update_position(db, position, payload)
+
+
+@router.delete(
+    "/positions/{position_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def delete_position(position_id: int, db: Session = Depends(get_db)):
+    position = service.get_position(db, position_id)
+    if not position:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy chức vụ")
+    if service.position_in_use(db, position_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Không thể xóa: đang có nhân viên giữ chức vụ này",
+        )
+    service.delete_position(db, position)
 
 
 @router.get("/employees", response_model=EmployeePageOut)

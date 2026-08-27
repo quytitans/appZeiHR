@@ -6,8 +6,12 @@ from app.models.personnel import EmployeeStatus, Gender
 
 
 class DepartmentCreate(BaseModel):
-    name: str
-    code: str
+    name: str = Field(min_length=1, max_length=255)
+    code: str = Field(min_length=1, max_length=50)
+
+
+class DepartmentUpdate(DepartmentCreate):
+    pass
 
 
 class DepartmentOut(DepartmentCreate):
@@ -16,7 +20,11 @@ class DepartmentOut(DepartmentCreate):
 
 
 class PositionCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=255)
+
+
+class PositionUpdate(PositionCreate):
+    pass
 
 
 class PositionOut(PositionCreate):

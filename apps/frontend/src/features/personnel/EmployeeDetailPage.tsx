@@ -16,6 +16,7 @@ import { ContractViewerModal } from "@/features/personnel/components/ContractVie
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
 import { EmployeeFormFields } from "@/features/personnel/components/EmployeeFormFields";
 import { StatusBadge } from "@/features/personnel/components/StatusBadge";
+import { getErrorDetail } from "@/lib/errors";
 import { useAuthStore } from "@/store/authStore";
 import type { Employee, EmployeeFormValues } from "@/types/personnel";
 
@@ -45,15 +46,6 @@ function toFormValues(employee: Employee): EmployeeFormValues {
     position_id: employee.position_id ? String(employee.position_id) : "",
     start_date: employee.start_date ?? "",
   };
-}
-
-function isAxiosErrorWithDetail(err: unknown): err is { response: { data: { detail: string } } } {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "response" in err &&
-    typeof (err as { response?: unknown }).response === "object"
-  );
 }
 
 export function EmployeeDetailPage() {
@@ -119,8 +111,7 @@ export function EmployeeDetailPage() {
       setError(null);
     },
     onError: (err) => {
-      const detail = isAxiosErrorWithDetail(err) ? err.response.data.detail : null;
-      setError(detail ?? "Không thể lưu thay đổi. Vui lòng thử lại.");
+      setError(getErrorDetail(err) ?? "Không thể lưu thay đổi. Vui lòng thử lại.");
       setSavedAt(null);
     },
   });
