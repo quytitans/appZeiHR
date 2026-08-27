@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
@@ -10,6 +12,7 @@ from app.modules.personnel.schemas import (
 )
 
 EMPLOYMENT_CONTRACT_DOC_TYPE = "employment_contract"
+EMPLOYEE_CODE_PREFIX = "ZEI"
 
 SORTABLE_FIELDS = {
     "full_name": Employee.full_name,
@@ -89,6 +92,29 @@ def list_employees(
 
 def get_employee(db: Session, employee_id: int) -> Employee | None:
     return _employee_query(db).filter(Employee.id == employee_id).first()
+
+
+def generate_next_employee_code(db: Session) -> str:
+    """Sinh mã nhân viên tự động dạng ZEI<YYYYMM><STT 3 chữ số>, vd ZEI202608001.
+
+    STT reset theo từng tháng, tính bằng cách lấy số lớn nhất đã dùng trong tháng hiện
+    tại + 1 (không dùng COUNT vì nhân viên có thể bị xoá làm lệch số thứ tự)."""
+
+    today = date.today()
+    prefix = f"{EMPLOYEE_CODE_PREFIX}{today.year:04d}{today.month:02d}"
+
+    existing_codes = (
+        db.query(Employee.employee_code)
+        .filter(Employee.employee_code.like(f"{prefix}%"))
+        .all()
+    )
+    max_seq = 0
+    for (code,) in existing_codes:
+        suffix = code[len(prefix) :]
+        if suffix.isdigit():
+            max_seq = max(max_seq, int(suffix))
+
+    return f"{prefix}{max_seq + 1:03d}"
 
 
 def employee_code_exists(db: Session, employee_code: str, exclude_id: int | None = None) -> bool:

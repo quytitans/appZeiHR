@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import { Icon } from "@/components/ui/Icon";
 import { ContractDocumentLink } from "@/features/personnel/components/ContractDocumentLink";
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
@@ -91,7 +93,14 @@ export function EmployeeTable({
               <td className="px-4 py-3">
                 <EmployeeAvatar fullName={employee.full_name} />
               </td>
-              <td className="px-4 py-3 font-medium text-slate-900">{employee.full_name}</td>
+              <td className="px-4 py-3 font-medium">
+                <Link
+                  to={`/personnel/${employee.id}`}
+                  className="text-brand-700 hover:text-brand-800 hover:underline"
+                >
+                  {employee.full_name}
+                </Link>
+              </td>
               <td className="px-4 py-3 text-slate-500">{employee.employee_code}</td>
               <td className="px-4 py-3 text-slate-500">{employee.company_email ?? "—"}</td>
               <td className="px-4 py-3 text-slate-500">{employee.phone ?? "—"}</td>

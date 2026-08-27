@@ -67,6 +67,18 @@ def list_employees(
     return EmployeePageOut(items=items, total=total, page=page, page_size=page_size)
 
 
+@router.get(
+    "/employees/next-code",
+    response_model=dict,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def get_next_employee_code(db: Session = Depends(get_db)):
+    """Sinh trước mã nhân viên tiếp theo để auto-fill vào form thêm mới. Đặt route này
+    TRƯỚC /employees/{employee_id} - nếu để sau, "next-code" sẽ bị route đó nuốt mất vì
+    khớp path trước rồi mới báo lỗi ép kiểu int."""
+    return {"employee_code": service.generate_next_employee_code(db)}
+
+
 @router.get("/employees/{employee_id}", response_model=EmployeeOut)
 def get_employee(employee_id: int, db: Session = Depends(get_db)):
     employee = service.get_employee(db, employee_id)

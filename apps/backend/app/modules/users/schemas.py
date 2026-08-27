@@ -10,9 +10,12 @@ class UserCreate(BaseModel):
 
 
 class UserOut(BaseModel):
+    """email: str (không phải EmailStr) - đây là schema OUTPUT, xem giải thích ở
+    app/modules/auth/schemas.py::UserOut."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    email: EmailStr
+    email: str
     role: Role
     is_active: bool

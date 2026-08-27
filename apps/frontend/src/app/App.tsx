@@ -6,6 +6,7 @@ import { LoginPage } from "@/features/auth/LoginPage";
 import { BenefitsPage } from "@/features/benefits/BenefitsPage";
 import { ContractsPage } from "@/features/contracts/ContractsPage";
 import { HomePage } from "@/features/dashboard/HomePage";
+import { EmployeeDetailPage } from "@/features/personnel/EmployeeDetailPage";
 import { PersonnelPage } from "@/features/personnel/PersonnelPage";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/personnel" element={<PersonnelPage />} />
+      <Route path="/personnel/:id" element={<EmployeeDetailPage />} />
       <Route path="/contracts" element={<ContractsPage />} />
       <Route path="/benefits" element={<BenefitsPage />} />
       <Route path="/attendance" element={<AttendancePage />} />

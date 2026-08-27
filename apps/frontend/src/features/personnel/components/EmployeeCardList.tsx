@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import { ContractDocumentLink } from "@/features/personnel/components/ContractDocumentLink";
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
 import { StatusBadge } from "@/features/personnel/components/StatusBadge";
@@ -17,9 +19,12 @@ export function EmployeeCardList({ employees, onViewContract }: EmployeeCardList
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">
+                <Link
+                  to={`/personnel/${employee.id}`}
+                  className="block truncate text-sm font-semibold text-brand-700 hover:text-brand-800 hover:underline"
+                >
                   {employee.full_name}
-                </p>
+                </Link>
                 <p className="text-xs text-slate-500">{employee.employee_code}</p>
               </div>
               <StatusBadge status={employee.status} />

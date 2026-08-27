@@ -20,14 +20,6 @@ export const MODULES: ModuleConfig[] = [
     roles: ["employee", "line_manager", "hr_admin", "system_admin"],
   },
   {
-    key: "contracts",
-    title: "Hợp đồng lao động",
-    description: "Quản lý loại hợp đồng, thời hạn, phụ lục và cảnh báo hết hạn.",
-    path: "/contracts",
-    icon: "contracts",
-    roles: ["hr_admin", "system_admin"],
-  },
-  {
     key: "benefits",
     title: "Phúc lợi",
     description: "Danh mục phúc lợi công ty, đăng ký và lịch sử sử dụng.",

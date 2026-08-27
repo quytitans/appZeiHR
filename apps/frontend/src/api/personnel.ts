@@ -39,6 +39,26 @@ export async function createEmployee(payload: CreateEmployeePayload): Promise<Em
   return data;
 }
 
+export async function getNextEmployeeCode(): Promise<string> {
+  const { data } = await apiClient.get<{ employee_code: string }>("/personnel/employees/next-code");
+  return data.employee_code;
+}
+
+export async function getEmployee(id: number): Promise<Employee> {
+  const { data } = await apiClient.get<Employee>(`/personnel/employees/${id}`);
+  return data;
+}
+
+export type UpdateEmployeePayload = CreateEmployeePayload;
+
+export async function updateEmployee(
+  id: number,
+  payload: UpdateEmployeePayload,
+): Promise<Employee> {
+  const { data } = await apiClient.put<Employee>(`/personnel/employees/${id}`, payload);
+  return data;
+}
+
 export async function uploadContractDocument(employeeId: number, file: File): Promise<Employee> {
   const formData = new FormData();
   formData.append("file", file);

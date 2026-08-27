@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -6,6 +7,17 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useAuthStore } from "@/store/authStore";
 import type { AuthUser } from "@/types/auth";
+
+function describeLoginError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    if (err.response) {
+      const detail = (err.response.data as { detail?: string } | undefined)?.detail;
+      return `Lỗi ${err.response.status}: ${detail ?? "Đăng nhập thất bại."}`;
+    }
+    return `Không gọi được API backend tại ${apiClient.defaults.baseURL} (mạng/CORS chặn hoặc backend chưa chạy). Chi tiết: ${err.message}`;
+  }
+  return "Đăng nhập thất bại. Vui lòng thử lại.";
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -36,8 +48,8 @@ export function LoginPage() {
 
       setAuth(token.access_token, user);
       navigate("/");
-    } catch {
-      setError("Đăng nhập thất bại. Kiểm tra lại email/mật khẩu hoặc kết nối API backend.");
+    } catch (err) {
+      setError(describeLoginError(err));
     } finally {
       setLoading(false);
     }
@@ -91,6 +103,9 @@ export function LoginPage() {
 
         <p className="mt-6 text-center text-xs text-slate-400">
           Tài khoản mặc định: admin@hrm.local / Admin@123
+        </p>
+        <p className="mt-1 text-center text-[11px] text-slate-300">
+          API: {apiClient.defaults.baseURL}
         </p>
       </div>
     </div>

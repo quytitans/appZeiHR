@@ -4,8 +4,8 @@ Web App Quản lý Nhân sự **Zei Group HR**, xây theo `srs_quan_ly_nhan_su.m
 
 ## Trạng thái hiện tại
 
-- **Hồ sơ nhân sự (`/personnel`)**: triển khai đầy đủ Giai đoạn 1 — thêm mới hồ sơ (form với duplicate-check mã NV/CCCD), danh sách responsive (bảng desktop / thẻ mobile), tìm kiếm real-time đa trường có debounce, phân trang & sắp xếp, upload + xem PDF hợp đồng lao động qua modal ngay trên trình duyệt.
-- **Hợp đồng, Phúc lợi, Chấm công & Nghỉ phép**: đã có model dữ liệu + API CRUD cơ bản, frontend còn là trang placeholder (`/contracts`, `/benefits`, `/attendance`) — triển khai chi tiết ở các lần sau.
+- **Hồ sơ nhân sự (`/personnel`)**: triển khai đầy đủ Giai đoạn 1 — thêm mới hồ sơ (mã nhân viên **tự động sinh** dạng `ZEI<YYYYMM><STT 3 số>`, vd `ZEI202608001`, không cho sửa tay), duplicate-check CCCD, danh sách responsive (bảng desktop / thẻ mobile), tìm kiếm real-time đa trường có debounce, phân trang & sắp xếp (đồng bộ vào URL query string để giữ trạng thái khi bấm Back), upload + xem PDF hợp đồng lao động qua modal. Bấm tên nhân viên → trang chi tiết (`/personnel/:id`) xem/sửa đầy đủ thông tin.
+- **Hợp đồng, Phúc lợi, Chấm công & Nghỉ phép**: đã có model dữ liệu + API CRUD cơ bản, frontend còn là trang placeholder (`/contracts`, `/benefits`, `/attendance`, chưa có link ở trang chủ) — triển khai chi tiết ở các lần sau.
 - **Auth/RBAC**: JWT + 4 vai trò hoạt động đầy đủ, khớp bảng phân quyền SRS mục 2.1.
 - **Database**: MySQL, schema quản lý bằng Alembic migration (không dùng `create_all`).
 - **Màu chủ đạo (brand color)**: thang màu mint/ngọc lam dùng xuyên suốt UI — xem [Bảng màu thương hiệu](#bảng-màu-thương-hiệu-brand-color) bên dưới.

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { listEmployees } from "@/api/personnel";
 import { PageShell } from "@/components/layout/PageShell";
@@ -17,25 +17,57 @@ import type { Employee, SortBy, SortDir } from "@/types/personnel";
 
 const MANAGE_ROLES = ["hr_admin", "system_admin"];
 
+/**
+ * Toàn bộ trạng thái danh sách (search/trang/sắp xếp) được lưu trong query string của URL
+ * (?search=...&page=...&sort_by=...) thay vì chỉ trong React state. Nhờ vậy khi người dùng
+ * mở trang chi tiết nhân viên rồi bấm "Quay lại" (browser back / navigate(-1)), URL cũ được
+ * khôi phục nguyên vẹn và trang danh sách tự hiển thị lại đúng bộ lọc/trang/sắp xếp trước đó.
+ */
 export function PersonnelPage() {
   const user = useAuthStore((state) => state.user);
   const canManage = !!user && MANAGE_ROLES.includes(user.role);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
+  const pageSize = Number(searchParams.get("page_size") ?? "20") || 20;
+  const sortBy = (searchParams.get("sort_by") as SortBy) || "full_name";
+  const sortDir = (searchParams.get("sort_dir") as SortDir) || "asc";
+  const searchFromUrl = searchParams.get("search") ?? "";
+
+  const [searchInput, setSearchInput] = useState(searchFromUrl);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [sortBy, setSortBy] = useState<SortBy>("full_name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [contractEmployee, setContractEmployee] = useState<Employee | null>(null);
 
+  function updateParams(patch: Record<string, string | number | undefined>) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(patch)) {
+          if (value === undefined || value === "") next.delete(key);
+          else next.set(key, String(value));
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  // Đẩy từ khóa tìm kiếm (đã debounce) vào URL, đồng thời reset về trang 1.
+  useEffect(() => {
+    if (debouncedSearch !== searchFromUrl) {
+      updateParams({ search: debouncedSearch || undefined, page: undefined });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["employees", { search: debouncedSearch, page, pageSize, sortBy, sortDir }],
+    queryKey: ["employees", { search: searchFromUrl, page, pageSize, sortBy, sortDir }],
     queryFn: () =>
       listEmployees({
-        search: debouncedSearch || undefined,
+        search: searchFromUrl || undefined,
         page,
         page_size: pageSize,
         sort_by: sortBy,
@@ -47,12 +79,10 @@ export function PersonnelPage() {
 
   function handleSortChange(field: SortBy) {
     if (field === sortBy) {
-      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+      updateParams({ sort_dir: sortDir === "asc" ? "desc" : "asc", page: undefined });
     } else {
-      setSortBy(field);
-      setSortDir("asc");
+      updateParams({ sort_by: field, sort_dir: "asc", page: undefined });
     }
-    setPage(1);
   }
 
   if (!user) {
@@ -103,10 +133,7 @@ export function PersonnelPage() {
               />
               <input
                 value={searchInput}
-                onChange={(e) => {
-                  setSearchInput(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Tìm theo mã NV, họ tên, email, CCCD..."
                 className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               />
@@ -121,7 +148,7 @@ export function PersonnelPage() {
 
           {!isError && !isLoading && employees.length === 0 && (
             <p className="px-4 py-10 text-center text-sm text-slate-400">
-              {debouncedSearch ? "Không tìm thấy nhân viên phù hợp." : "Chưa có nhân viên nào."}
+              {searchFromUrl ? "Không tìm thấy nhân viên phù hợp." : "Chưa có nhân viên nào."}
             </p>
           )}
 
@@ -143,11 +170,8 @@ export function PersonnelPage() {
               page={page}
               pageSize={pageSize}
               total={data.total}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setPage(1);
-              }}
+              onPageChange={(p) => updateParams({ page: p })}
+              onPageSizeChange={(size) => updateParams({ page_size: size, page: undefined })}
             />
           )}
         </div>
