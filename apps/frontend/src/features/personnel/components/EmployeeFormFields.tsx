@@ -6,7 +6,6 @@ interface EmployeeFormFieldsProps {
   departments: Department[];
   positions: Position[];
   disabled?: boolean;
-  employeeCodeLoading?: boolean;
 }
 
 const inputClass =
@@ -20,29 +19,12 @@ export function EmployeeFormFields({
   departments,
   positions,
   disabled = false,
-  employeeCodeLoading = false,
 }: EmployeeFormFieldsProps) {
   return (
     <div className="space-y-5">
       <div>
         <h3 className={sectionTitleClass}>Thông tin định danh</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className={labelClass} htmlFor="employee_code">
-              Mã nhân viên <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="employee_code"
-              required
-              disabled
-              readOnly
-              value={employeeCodeLoading ? "Đang sinh mã..." : form.employee_code}
-              className={inputClass}
-            />
-            <p className="mt-1 text-[11px] text-slate-400">
-              Tự động sinh (ZEI + năm tháng + số thứ tự), dùng để tra cứu nhân sự - không thể chỉnh sửa.
-            </p>
-          </div>
           <div>
             <label className={labelClass} htmlFor="full_name">
               Họ và tên <span className="text-red-500">*</span>

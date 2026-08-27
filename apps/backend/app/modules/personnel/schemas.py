@@ -27,12 +27,12 @@ class PositionOut(PositionCreate):
 class EmployeeCreate(BaseModel):
     """Form thêm mới hồ sơ nhân sự - SRS 3.1.2.A.
 
-    Tạm thời chỉ bắt buộc 2 trường cơ bản nhất (employee_code, full_name) để giảm ma sát
-    khi nhập liệu nhanh; các trường còn lại (kể cả email, CCCD) chưa bắt buộc ở giai đoạn này.
-    Duplicate-check với employee_code/national_id vẫn áp dụng khi có giá trị.
+    Không nhận employee_code từ client: mã được backend tự sinh NGAY LÚC TẠO (không phải
+    lúc mở form) để tránh 2 người mở form cùng lúc bị cấp trùng mã - xem
+    service.create_employee(). Tạm thời chỉ bắt buộc full_name; các trường còn lại (kể cả
+    email, CCCD) chưa bắt buộc ở giai đoạn này.
     """
 
-    employee_code: str = Field(min_length=1, max_length=50)
     full_name: str = Field(min_length=1, max_length=255)
     company_email: EmailStr | None = None
     national_id: str | None = Field(default=None, max_length=50)

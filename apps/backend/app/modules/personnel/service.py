@@ -1,6 +1,7 @@
 from datetime import date
 
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.personnel import Department, Employee, EmployeeDocument, Position
@@ -117,13 +118,6 @@ def generate_next_employee_code(db: Session) -> str:
     return f"{prefix}{max_seq + 1:03d}"
 
 
-def employee_code_exists(db: Session, employee_code: str, exclude_id: int | None = None) -> bool:
-    query = db.query(Employee).filter(Employee.employee_code == employee_code)
-    if exclude_id:
-        query = query.filter(Employee.id != exclude_id)
-    return db.query(query.exists()).scalar()
-
-
 def national_id_exists(db: Session, national_id: str, exclude_id: int | None = None) -> bool:
     query = db.query(Employee).filter(Employee.national_id == national_id)
     if exclude_id:
@@ -131,12 +125,30 @@ def national_id_exists(db: Session, national_id: str, exclude_id: int | None = N
     return db.query(query.exists()).scalar()
 
 
+MAX_EMPLOYEE_CODE_RETRIES = 5
+
+
 def create_employee(db: Session, payload: EmployeeCreate) -> Employee:
-    employee = Employee(**payload.model_dump())
-    db.add(employee)
-    db.commit()
-    db.refresh(employee)
-    return get_employee(db, employee.id)  # type: ignore[return-value]
+    """Sinh employee_code và tạo nhân viên trong cùng 1 bước (không sinh mã trước khi
+    người dùng bấm Lưu). Nếu 2 request tạo cùng lúc tính ra trùng mã (đụng độ hiếm gặp),
+    unique constraint ở DB sẽ chặn - retry sinh mã mới vài lần thay vì báo lỗi ngay."""
+
+    data = payload.model_dump()
+    last_error: IntegrityError | None = None
+
+    for _ in range(MAX_EMPLOYEE_CODE_RETRIES):
+        employee = Employee(**data, employee_code=generate_next_employee_code(db))
+        db.add(employee)
+        try:
+            db.commit()
+        except IntegrityError as exc:
+            db.rollback()
+            last_error = exc
+            continue
+        db.refresh(employee)
+        return get_employee(db, employee.id)  # type: ignore[return-value]
+
+    raise last_error or RuntimeError("Không thể sinh mã nhân viên duy nhất")
 
 
 def update_employee(db: Session, employee: Employee, payload: EmployeeUpdate) -> Employee:

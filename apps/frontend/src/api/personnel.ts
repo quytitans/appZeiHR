@@ -22,7 +22,6 @@ export async function listEmployees(params: ListEmployeesParams): Promise<Employ
 }
 
 export interface CreateEmployeePayload {
-  employee_code: string;
   full_name: string;
   company_email?: string | null;
   national_id?: string | null;
@@ -37,11 +36,6 @@ export interface CreateEmployeePayload {
 export async function createEmployee(payload: CreateEmployeePayload): Promise<Employee> {
   const { data } = await apiClient.post<Employee>("/personnel/employees", payload);
   return data;
-}
-
-export async function getNextEmployeeCode(): Promise<string> {
-  const { data } = await apiClient.get<{ employee_code: string }>("/personnel/employees/next-code");
-  return data.employee_code;
 }
 
 export async function getEmployee(id: number): Promise<Employee> {

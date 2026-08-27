@@ -22,7 +22,6 @@ import type { Employee, EmployeeFormValues } from "@/types/personnel";
 const MANAGE_ROLES = ["hr_admin", "system_admin"];
 
 const EMPTY_FORM: EmployeeFormValues = {
-  employee_code: "",
   full_name: "",
   company_email: "",
   national_id: "",
@@ -36,7 +35,6 @@ const EMPTY_FORM: EmployeeFormValues = {
 
 function toFormValues(employee: Employee): EmployeeFormValues {
   return {
-    employee_code: employee.employee_code,
     full_name: employee.full_name,
     company_email: employee.company_email ?? "",
     national_id: employee.national_id ?? "",
@@ -97,7 +95,6 @@ export function EmployeeDetailPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       const updated = await updateEmployee(employeeId, {
-        employee_code: form.employee_code.trim(),
         full_name: form.full_name.trim(),
         company_email: form.company_email.trim() || null,
         national_id: form.national_id.trim() || null,

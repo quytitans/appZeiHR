@@ -67,18 +67,6 @@ def list_employees(
     return EmployeePageOut(items=items, total=total, page=page, page_size=page_size)
 
 
-@router.get(
-    "/employees/next-code",
-    response_model=dict,
-    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
-)
-def get_next_employee_code(db: Session = Depends(get_db)):
-    """Sinh trước mã nhân viên tiếp theo để auto-fill vào form thêm mới. Đặt route này
-    TRƯỚC /employees/{employee_id} - nếu để sau, "next-code" sẽ bị route đó nuốt mất vì
-    khớp path trước rồi mới báo lỗi ép kiểu int."""
-    return {"employee_code": service.generate_next_employee_code(db)}
-
-
 @router.get("/employees/{employee_id}", response_model=EmployeeOut)
 def get_employee(employee_id: int, db: Session = Depends(get_db)):
     employee = service.get_employee(db, employee_id)
@@ -87,13 +75,9 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
     return employee
 
 
-def _assert_no_duplicates(
-    db: Session, employee_code: str, national_id: str | None, exclude_id: int | None = None
+def _assert_national_id_not_duplicate(
+    db: Session, national_id: str | None, exclude_id: int | None = None
 ) -> None:
-    if service.employee_code_exists(db, employee_code, exclude_id):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Mã nhân viên đã tồn tại"
-        )
     if national_id and service.national_id_exists(db, national_id, exclude_id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Số CCCD/CMND đã tồn tại"
@@ -107,7 +91,9 @@ def _assert_no_duplicates(
     dependencies=[Depends(require_roles(*MANAGE_ROLES))],
 )
 def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db)):
-    _assert_no_duplicates(db, payload.employee_code, payload.national_id)
+    """employee_code KHÔNG nhận từ client - service.create_employee tự sinh mã ngay lúc
+    tạo (không phải lúc mở form) để tránh đụng độ giữa nhiều người dùng cùng thao tác."""
+    _assert_national_id_not_duplicate(db, payload.national_id)
     return service.create_employee(db, payload)
 
 
@@ -120,7 +106,7 @@ def update_employee(employee_id: int, payload: EmployeeUpdate, db: Session = Dep
     employee = service.get_employee(db, employee_id)
     if not employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy nhân viên")
-    _assert_no_duplicates(db, payload.employee_code, payload.national_id, exclude_id=employee_id)
+    _assert_national_id_not_duplicate(db, payload.national_id, exclude_id=employee_id)
     return service.update_employee(db, employee, payload)
 
 

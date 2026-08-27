@@ -63,7 +63,6 @@ export interface EmployeePage {
 }
 
 export interface EmployeeFormValues {
-  employee_code: string;
   full_name: string;
   company_email: string;
   national_id: string;

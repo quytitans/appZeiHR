@@ -1,13 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import {
-  createEmployee,
-  getNextEmployeeCode,
-  listDepartments,
-  listPositions,
-  uploadContractDocument,
-} from "@/api/personnel";
+import { createEmployee, listDepartments, listPositions, uploadContractDocument } from "@/api/personnel";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { EmployeeFormFields } from "@/features/personnel/components/EmployeeFormFields";
@@ -19,7 +13,6 @@ interface EmployeeFormModalProps {
 }
 
 const EMPTY_FORM: EmployeeFormValues = {
-  employee_code: "",
   full_name: "",
   company_email: "",
   national_id: "",
@@ -55,21 +48,11 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
     queryFn: listPositions,
   });
 
-  const { data: nextEmployeeCode, isLoading: isEmployeeCodeLoading } = useQuery({
-    queryKey: ["employees", "next-code"],
-    queryFn: getNextEmployeeCode,
-    staleTime: 0, // luôn lấy mã mới nhất mỗi khi mở modal, tránh trùng với nhân viên vừa tạo
-  });
-
-  useEffect(() => {
-    if (nextEmployeeCode) update("employee_code", nextEmployeeCode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextEmployeeCode]);
-
   const mutation = useMutation({
     mutationFn: async () => {
+      // Mã nhân viên KHÔNG sinh trước - backend tự sinh ngay trong lúc tạo (POST này) để
+      // tránh 2 người mở form cùng lúc bị cấp trùng mã.
       const employee = await createEmployee({
-        employee_code: form.employee_code.trim(),
         full_name: form.full_name.trim(),
         company_email: form.company_email.trim() || null,
         national_id: form.national_id.trim() || null,
@@ -116,11 +99,7 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
           <Button type="button" variant="secondary" onClick={onClose}>
             Hủy
           </Button>
-          <Button
-            type="submit"
-            form="employee-form"
-            disabled={mutation.isPending || isEmployeeCodeLoading}
-          >
+          <Button type="submit" form="employee-form" disabled={mutation.isPending}>
             {mutation.isPending ? "Đang lưu..." : "Lưu hồ sơ"}
           </Button>
         </>
@@ -130,14 +109,12 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
         )}
+        <p className="text-xs text-slate-400">
+          Mã nhân viên sẽ được hệ thống tự động sinh (ZEI + năm tháng + số thứ tự) ngay khi bạn
+          bấm "Lưu hồ sơ".
+        </p>
 
-        <EmployeeFormFields
-          form={form}
-          update={update}
-          departments={departments}
-          positions={positions}
-          employeeCodeLoading={isEmployeeCodeLoading}
-        />
+        <EmployeeFormFields form={form} update={update} departments={departments} positions={positions} />
 
         <div>
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
