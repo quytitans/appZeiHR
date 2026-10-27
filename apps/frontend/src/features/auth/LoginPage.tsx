@@ -2,11 +2,11 @@ import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { login } from "@/api/auth";
 import { apiClient } from "@/api/client";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useAuthStore } from "@/store/authStore";
-import type { AuthUser } from "@/types/auth";
 
 function describeLoginError(err: unknown): string {
   if (axios.isAxiosError(err)) {
@@ -32,21 +32,8 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const form = new URLSearchParams();
-      form.set("username", email);
-      form.set("password", password);
-
-      const { data: token } = await apiClient.post<{ access_token: string }>(
-        "/auth/login",
-        form,
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
-      );
-
-      const { data: user } = await apiClient.get<AuthUser>("/auth/me", {
-        headers: { Authorization: `Bearer ${token.access_token}` },
-      });
-
-      setAuth(token.access_token, user);
+      const { token, user } = await login(email, password);
+      setAuth(token, user);
       navigate("/");
     } catch (err) {
       setError(describeLoginError(err));
@@ -62,7 +49,7 @@ export function LoginPage() {
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-white">
             <Icon name="logo" className="h-6 w-6" />
           </span>
-          <h1 className="mt-4 text-lg font-semibold text-slate-900">Đăng nhập Zei Group HR</h1>
+          <h1 className="mt-4 text-lg font-semibold text-slate-900">Đăng nhập Zei OXA v1.0</h1>
           <p className="mt-1 text-sm text-slate-500">Quản lý nhân sự nội bộ doanh nghiệp</p>
         </div>
 

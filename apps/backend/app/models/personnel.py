@@ -7,6 +7,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base, TimestampMixin
 
 
+class ApprovalLevel(str, enum.Enum):
+    """Cấp duyệt gắn theo Chức vụ, quyết định luồng duyệt đơn nghỉ phép."""
+
+    STAFF = "staff"
+    DEPARTMENT_HEAD = "department_head"
+    DIRECTOR = "director"
+    CEO = "ceo"
+
+
 class EmployeeStatus(str, enum.Enum):
     ACTIVE = "active"
     ON_LEAVE = "on_leave"
@@ -36,6 +45,10 @@ class Position(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Cấp trong luồng duyệt đơn (độc lập với role RBAC) - xem app/modules/attendance/service.py
+    approval_level: Mapped[ApprovalLevel] = mapped_column(
+        Enum(ApprovalLevel), default=ApprovalLevel.STAFF, server_default=ApprovalLevel.STAFF.name, nullable=False
+    )
 
     employees: Mapped[list["Employee"]] = relationship(
         "Employee", back_populates="position", foreign_keys="Employee.position_id"
@@ -88,8 +101,12 @@ class Employee(TimestampMixin, Base):
     manager: Mapped["Employee | None"] = relationship(
         "Employee", remote_side=[id], foreign_keys=[manager_id]
     )
+    # Mới nhất lên đầu - thứ tự hiển thị danh sách tài liệu ở frontend
     documents: Mapped[list["EmployeeDocument"]] = relationship(
-        "EmployeeDocument", back_populates="employee", cascade="all, delete-orphan"
+        "EmployeeDocument",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        order_by=lambda: (EmployeeDocument.uploaded_at.desc(), EmployeeDocument.id.desc()),
     )
     employment_history: Mapped[list["EmploymentHistory"]] = relationship(
         "EmploymentHistory", back_populates="employee", cascade="all, delete-orphan"
@@ -99,8 +116,8 @@ class Employee(TimestampMixin, Base):
     def contract_document(self) -> "EmployeeDocument | None":
         """Bản hợp đồng lao động mới nhất đính kèm hồ sơ (SRS 3.1.2.D).
 
-        Giá trị "employment_contract" phải khớp EMPLOYMENT_CONTRACT_DOC_TYPE ở
-        app/modules/personnel/service.py.
+        Giá trị "employment_contract" phải khớp EmployeeDocumentType ở
+        app/modules/personnel/schemas.py.
         """
         contract_docs = [d for d in self.documents if d.doc_type == "employment_contract"]
         if not contract_docs:
@@ -138,3 +155,17 @@ class EmploymentHistory(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="employment_history")
+
+
+class EmployeeCodeRegistry(Base):
+    """Sổ đăng ký mọi mã nhân viên ĐÃ TỪNG được cấp - chỉ thêm, không bao giờ xoá.
+
+    Khi xoá/nghỉ việc nhân viên, mã vẫn nằm ở đây nên không bị cấp lại cho người khác
+    (vd longdv đã dùng thì người mới trùng tên viết tắt nhận longdv1) - xem
+    service.generate_employee_code().
+    """
+
+    __tablename__ = "employee_code_registry"
+
+    code: Mapped[str] = mapped_column(String(50), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

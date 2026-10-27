@@ -1,8 +1,9 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models.personnel import EmployeeStatus, Gender
+from app.models.personnel import ApprovalLevel, EmployeeStatus, Gender
 
 
 class DepartmentCreate(BaseModel):
@@ -21,6 +22,7 @@ class DepartmentOut(DepartmentCreate):
 
 class PositionCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
+    approval_level: ApprovalLevel = ApprovalLevel.STAFF
 
 
 class PositionUpdate(PositionCreate):
@@ -35,8 +37,8 @@ class PositionOut(PositionCreate):
 class EmployeeCreate(BaseModel):
     """Form thêm mới hồ sơ nhân sự - SRS 3.1.2.A.
 
-    Không nhận employee_code từ client: mã được backend tự sinh NGAY LÚC TẠO (không phải
-    lúc mở form) để tránh 2 người mở form cùng lúc bị cấp trùng mã - xem
+    Không nhận employee_code từ client: mã được backend tự sinh từ họ tên NGAY LÚC TẠO
+    (form chỉ hiển thị bản xem trước) để tránh 2 người tạo cùng lúc bị cấp trùng mã - xem
     service.create_employee(). Tạm thời chỉ bắt buộc full_name; các trường còn lại (kể cả
     email, CCCD) chưa bắt buộc ở giai đoạn này.
     """
@@ -74,6 +76,10 @@ class PositionBrief(BaseModel):
     title: str
 
 
+# Phải khớp DOCUMENT_TYPE_LABELS ở frontend (src/types/personnel.ts)
+EmployeeDocumentType = Literal["employment_contract", "contract_appendix", "other"]
+
+
 class EmployeeDocumentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -107,6 +113,11 @@ class EmployeeOut(BaseModel):
     department: DepartmentBrief | None = None
     position: PositionBrief | None = None
     contract_document: EmployeeDocumentOut | None = None
+    documents: list[EmployeeDocumentOut] = []
+
+
+class EmployeeCodePreviewOut(BaseModel):
+    employee_code: str
 
 
 class EmployeePageOut(BaseModel):

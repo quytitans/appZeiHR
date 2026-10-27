@@ -1,10 +1,10 @@
-# CLAUDE.md — Zei Group HR
+# CLAUDE.md — Zei OXA
 
 Hướng dẫn cho Claude Code khi mở project này trên **bất kỳ máy nào** (kể cả sau khi `git clone`/`git pull` lần đầu trên máy mới). Đọc file này trước khi làm gì khác trong repo.
 
 ## Project là gì
 
-**Zei Group HR** — web app quản lý nhân sự, đặc tả tại [`srs_quan_ly_nhan_su.md`](srs_quan_ly_nhan_su.md) (mục 6 của file đó là "trạng thái triển khai hiện tại", luôn đọc mục đó trước để biết chính xác phần nào đã code, phần nào còn placeholder).
+**Zei OXA** — web app quản lý nhân sự, đặc tả tại [`srs_quan_ly_nhan_su.md`](srs_quan_ly_nhan_su.md) (mục 6 của file đó là "trạng thái triển khai hiện tại", luôn đọc mục đó trước để biết chính xác phần nào đã code, phần nào còn placeholder).
 
 Stack: Python FastAPI + SQLAlchemy 2.0 + Alembic (backend) · MySQL 8 · React + TypeScript + Vite + Tailwind + TanStack Query + Zustand (frontend) · Docker Compose cho dev. Monorepo: `apps/backend/`, `apps/frontend/`.
 

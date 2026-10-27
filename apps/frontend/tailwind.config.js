@@ -1,6 +1,6 @@
 /**
  * Bảng màu "brand" trích từ mẫu màu người dùng cung cấp (xanh mint/ngọc lam, base #4FC9A9).
- * Đây là màu chủ đạo (primary) dùng xuyên suốt toàn bộ UI/UX của hệ thống Zei Group HR —
+ * Đây là màu chủ đạo (primary) dùng xuyên suốt toàn bộ UI/UX của hệ thống Zei OXA —
  * không đổi màu tuỳ tiện ở các phân hệ khác, mọi nút CTA/active state/badge trạng thái
  * đều nên tham chiếu từ thang màu này để giữ nhất quán.
  */

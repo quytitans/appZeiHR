@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    PROJECT_NAME: str = "Zei Group HR API"
+    PROJECT_NAME: str = "Zei OXA API"
     API_V1_PREFIX: str = "/api/v1"
 
     DATABASE_URL: str = "mysql+pymysql://hrm_user:hrm_password@localhost:3306/hrm_db"

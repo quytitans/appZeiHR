@@ -1,4 +1,4 @@
-# Deployment — Zei Group HR
+# Deployment — Zei OXA
 
 Ghi chú cấu hình để deploy lên hosting thật (không phải máy dev). Đọc file này TRƯỚC khi deploy lần đầu.
 

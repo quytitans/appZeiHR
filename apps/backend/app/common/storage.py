@@ -16,7 +16,7 @@ def save_pdf_upload(file: UploadFile, subdir: str) -> tuple[str, str]:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Chỉ chấp nhận file PDF cho hợp đồng lao động",
+            detail="Chỉ chấp nhận file PDF",
         )
 
     upload_root = Path(settings.UPLOAD_DIR) / subdir
@@ -44,7 +44,7 @@ def save_pdf_upload(file: UploadFile, subdir: str) -> tuple[str, str]:
 
 
 def delete_stored_file(file_url: str) -> None:
-    """Xóa file đã lưu qua save_pdf_upload, dùng khi "thay thế" tài liệu cũ."""
+    """Xóa file đã lưu qua save_pdf_upload, dùng khi xóa tài liệu."""
     relative_path = file_url.removeprefix("/files/")
     path = Path(settings.UPLOAD_DIR) / relative_path
     path.unlink(missing_ok=True)

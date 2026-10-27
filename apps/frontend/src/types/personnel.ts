@@ -1,3 +1,5 @@
+import type { ApprovalLevel } from "@/types/auth";
+
 export type Gender = "male" | "female" | "other";
 export type EmployeeStatus = "active" | "on_leave" | "terminated";
 
@@ -22,11 +24,21 @@ export interface Department {
 export interface Position {
   id: number;
   title: string;
+  approval_level: ApprovalLevel;
 }
+
+// Phải khớp EmployeeDocumentType ở backend (app/modules/personnel/schemas.py)
+export type DocumentType = "employment_contract" | "contract_appendix" | "other";
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  employment_contract: "Hợp đồng lao động",
+  contract_appendix: "Phụ lục hợp đồng",
+  other: "Tài liệu khác",
+};
 
 export interface EmployeeDocument {
   id: number;
-  doc_type: string;
+  doc_type: DocumentType;
   file_url: string;
   file_name: string;
   uploaded_at: string;
@@ -53,6 +65,8 @@ export interface Employee {
   department: { id: number; name: string } | null;
   position: { id: number; title: string } | null;
   contract_document: EmployeeDocument | null;
+  /** Toàn bộ tài liệu đính kèm, mới nhất lên đầu */
+  documents: EmployeeDocument[];
 }
 
 export interface EmployeePage {

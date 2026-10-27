@@ -7,7 +7,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pagination } from "@/components/ui/Pagination";
-import { ContractViewerModal } from "@/features/personnel/components/ContractViewerModal";
+import { EmployeeDocumentsModal } from "@/features/personnel/components/EmployeeDocumentsModal";
 import { EmployeeCardList } from "@/features/personnel/components/EmployeeCardList";
 import { EmployeeFormModal } from "@/features/personnel/components/EmployeeFormModal";
 import { EmployeeTable } from "@/features/personnel/components/EmployeeTable";
@@ -39,7 +39,7 @@ export function PersonnelPage() {
   const debouncedSearch = useDebouncedValue(searchInput, 300);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [contractEmployee, setContractEmployee] = useState<Employee | null>(null);
+  const [documentsEmployee, setDocumentsEmployee] = useState<Employee | null>(null);
 
   function updateParams(patch: Record<string, string | number | undefined>) {
     setSearchParams(
@@ -159,9 +159,9 @@ export function PersonnelPage() {
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSortChange={handleSortChange}
-                onViewContract={setContractEmployee}
+                onViewDocuments={setDocumentsEmployee}
               />
-              <EmployeeCardList employees={employees} onViewContract={setContractEmployee} />
+              <EmployeeCardList employees={employees} onViewDocuments={setDocumentsEmployee} />
             </>
           )}
 
@@ -184,8 +184,8 @@ export function PersonnelPage() {
         />
       )}
 
-      {contractEmployee && (
-        <ContractViewerModal employee={contractEmployee} onClose={() => setContractEmployee(null)} />
+      {documentsEmployee && (
+        <EmployeeDocumentsModal employee={documentsEmployee} onClose={() => setDocumentsEmployee(null)} />
       )}
     </PageShell>
   );

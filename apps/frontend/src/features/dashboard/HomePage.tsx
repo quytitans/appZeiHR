@@ -8,14 +8,14 @@ export function HomePage() {
       <section className="border-b border-slate-200 bg-gradient-to-b from-brand-50 to-slate-50">
         <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
           <span className="inline-flex items-center rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
-            Zei Group HR
+            Zei OXA v1.0
           </span>
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Quản lý nhân sự tập trung, gọn nhẹ và trực quan
+            Vận hành doanh nghiệp tập trung, gọn nhẹ và trực quan
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600">
-            Hồ sơ nhân sự, hợp đồng lao động, phúc lợi và chấm công &ndash; nghỉ phép trong một hệ
-            thống duy nhất, truy cập mượt mà trên mọi thiết bị.
+            Nhân sự, hợp đồng, phúc lợi, chấm công &ndash; nghỉ phép và tài sản doanh nghiệp trên
+            cùng một nền tảng, truy cập mượt mà trên mọi thiết bị.
           </p>
         </div>
       </section>

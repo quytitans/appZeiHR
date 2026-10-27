@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import decode_access_token
 from app.db.session import get_db
+from app.models.personnel import Employee
 from app.models.user import Role, User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
@@ -41,3 +42,14 @@ def require_roles(*allowed_roles: Role):
         return current_user
 
     return _checker
+
+
+def get_current_employee(current_user: User = Depends(get_current_user)) -> Employee:
+    """Hồ sơ nhân viên gắn với tài khoản đang đăng nhập - dùng cho thao tác "của tôi"
+    (tạo đơn nghỉ, duyệt đơn...). Tài khoản hệ thống như admin@hrm.local không có hồ sơ."""
+    if current_user.employee is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tài khoản chưa liên kết hồ sơ nhân viên",
+        )
+    return current_user.employee

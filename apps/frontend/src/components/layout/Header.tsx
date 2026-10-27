@@ -17,7 +17,7 @@ export function Header() {
             <Icon name="logo" className="h-5 w-5" />
           </span>
           <div className="leading-tight">
-            <p className="text-sm font-semibold text-slate-900">Zei Group HR</p>
+            <p className="text-sm font-semibold text-slate-900">Zei OXA v1.0</p>
             <p className="text-xs text-slate-500">Quản lý Nhân sự</p>
           </div>
         </Link>

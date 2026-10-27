@@ -1,10 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { createEmployee, listDepartments, listPositions, uploadContractDocument } from "@/api/personnel";
+import {
+  createEmployee,
+  listDepartments,
+  listPositions,
+  previewEmployeeCode,
+  uploadEmployeeDocument,
+} from "@/api/personnel";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { EmployeeFormFields } from "@/features/personnel/components/EmployeeFormFields";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { getErrorDetail } from "@/lib/errors";
 import type { EmployeeFormValues } from "@/types/personnel";
 
@@ -40,10 +47,19 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
     queryFn: listPositions,
   });
 
+  const trimmedName = form.full_name.trim();
+  const debouncedName = useDebouncedValue(trimmedName, 300);
+  const codePreview = useQuery({
+    queryKey: ["employee-code-preview", debouncedName],
+    queryFn: () => previewEmployeeCode(debouncedName),
+    enabled: debouncedName.length > 0,
+    staleTime: 0,
+  });
+
   const mutation = useMutation({
     mutationFn: async () => {
-      // Mã nhân viên KHÔNG sinh trước - backend tự sinh ngay trong lúc tạo (POST này) để
-      // tránh 2 người mở form cùng lúc bị cấp trùng mã.
+      // Mã trên form chỉ là xem trước - backend chốt mã thật ngay trong POST này nên
+      // có thể khác (tăng số đuôi) nếu có người khác vừa tạo nhân viên trùng mã.
       const employee = await createEmployee({
         full_name: form.full_name.trim(),
         company_email: form.company_email.trim() || null,
@@ -57,7 +73,7 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
       });
 
       if (contractFile) {
-        await uploadContractDocument(employee.id, contractFile);
+        await uploadEmployeeDocument(employee.id, contractFile, "employment_contract");
       }
       return employee;
     },
@@ -100,10 +116,18 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
         )}
-        <p className="text-xs text-slate-400">
-          Mã nhân viên sẽ được hệ thống tự động sinh (ZEI + năm tháng + số thứ tự) ngay khi bạn
-          bấm "Lưu hồ sơ".
-        </p>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50/60 px-4 py-3">
+          <span className="text-sm font-medium text-slate-600">Mã nhân viên</span>
+          <span className="font-mono text-lg font-semibold text-brand-700">
+            {!trimmedName
+              ? "—"
+              : codePreview.isFetching || trimmedName !== debouncedName
+                ? "..."
+                : codePreview.isError
+                  ? "—"
+                  : codePreview.data}
+          </span>
+        </div>
 
         <EmployeeFormFields form={form} update={update} departments={departments} positions={positions} />
 

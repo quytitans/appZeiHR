@@ -1,6 +1,8 @@
 import { apiClient } from "@/api/client";
+import type { ApprovalLevel } from "@/types/auth";
 import type {
   Department,
+  DocumentType,
   Employee,
   EmployeePage,
   Position,
@@ -38,6 +40,15 @@ export async function createEmployee(payload: CreateEmployeePayload): Promise<Em
   return data;
 }
 
+/** Mã nhân viên dự kiến theo họ tên - chỉ xem trước, mã thật chốt lúc createEmployee. */
+export async function previewEmployeeCode(fullName: string): Promise<string> {
+  const { data } = await apiClient.get<{ employee_code: string }>(
+    "/personnel/employees/code-preview",
+    { params: { full_name: fullName } },
+  );
+  return data.employee_code;
+}
+
 export async function getEmployee(id: number): Promise<Employee> {
   const { data } = await apiClient.get<Employee>(`/personnel/employees/${id}`);
   return data;
@@ -53,17 +64,27 @@ export async function updateEmployee(
   return data;
 }
 
-export async function uploadContractDocument(
+export async function uploadEmployeeDocument(
   employeeId: number,
   file: File,
-  replace = false,
+  docType: DocumentType,
 ): Promise<Employee> {
   const formData = new FormData();
   formData.append("file", file);
   const { data } = await apiClient.post<Employee>(
-    `/personnel/employees/${employeeId}/contract-document`,
+    `/personnel/employees/${employeeId}/documents`,
     formData,
-    { headers: { "Content-Type": "multipart/form-data" }, params: { replace } },
+    { headers: { "Content-Type": "multipart/form-data" }, params: { doc_type: docType } },
+  );
+  return data;
+}
+
+export async function deleteEmployeeDocument(
+  employeeId: number,
+  documentId: number,
+): Promise<Employee> {
+  const { data } = await apiClient.delete<Employee>(
+    `/personnel/employees/${employeeId}/documents/${documentId}`,
   );
   return data;
 }
@@ -99,6 +120,7 @@ export async function listPositions(): Promise<Position[]> {
 
 export interface PositionPayload {
   title: string;
+  approval_level: ApprovalLevel;
 }
 
 export async function createPosition(payload: PositionPayload): Promise<Position> {

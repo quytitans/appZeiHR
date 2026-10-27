@@ -6,14 +6,14 @@ import { getEmployee, listDepartments, listPositions, updateEmployee } from "@/a
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { ContractUploadSection } from "@/features/personnel/components/ContractUploadSection";
-import { ContractViewerModal } from "@/features/personnel/components/ContractViewerModal";
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
+import { EmployeeDocumentsModal } from "@/features/personnel/components/EmployeeDocumentsModal";
+import { EmployeeDocumentsSection } from "@/features/personnel/components/EmployeeDocumentsSection";
 import { EmployeeFormFields } from "@/features/personnel/components/EmployeeFormFields";
 import { StatusBadge } from "@/features/personnel/components/StatusBadge";
 import { getErrorDetail } from "@/lib/errors";
 import { useAuthStore } from "@/store/authStore";
-import type { Employee, EmployeeFormValues } from "@/types/personnel";
+import type { Employee, EmployeeDocument, EmployeeFormValues } from "@/types/personnel";
 
 const MANAGE_ROLES = ["hr_admin", "system_admin"];
 
@@ -54,7 +54,7 @@ export function EmployeeDetailPage() {
   const [form, setForm] = useState<EmployeeFormValues>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [showContractViewer, setShowContractViewer] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState<EmployeeDocument | null>(null);
 
   const {
     data: employee,
@@ -206,18 +206,22 @@ export function EmployeeDetailPage() {
             </form>
 
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <ContractUploadSection
+              <EmployeeDocumentsSection
                 employee={employee}
                 canManage={canManage}
-                onViewContract={() => setShowContractViewer(true)}
+                onViewDocument={setViewingDocument}
               />
             </div>
           </>
         )}
       </div>
 
-      {showContractViewer && employee && (
-        <ContractViewerModal employee={employee} onClose={() => setShowContractViewer(false)} />
+      {viewingDocument && employee && (
+        <EmployeeDocumentsModal
+          employee={employee}
+          initialDocument={viewingDocument}
+          onClose={() => setViewingDocument(null)}
+        />
       )}
     </PageShell>
   );

@@ -13,5 +13,8 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Chạy trong Docker trên Windows, bind mount không phát sự kiện thay đổi file vào
+    // container -> phải polling thì hot reload mới nhận code mới
+    watch: { usePolling: true, interval: 300 },
   },
 });

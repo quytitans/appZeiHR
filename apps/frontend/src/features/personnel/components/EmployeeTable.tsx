@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { Icon } from "@/components/ui/Icon";
-import { ContractDocumentLink } from "@/features/personnel/components/ContractDocumentLink";
+import { EmployeeDocumentsLink } from "@/features/personnel/components/EmployeeDocumentsLink";
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
 import { StatusBadge } from "@/features/personnel/components/StatusBadge";
 import type { Employee, SortBy, SortDir } from "@/types/personnel";
@@ -11,7 +11,7 @@ interface EmployeeTableProps {
   sortBy: SortBy;
   sortDir: SortDir;
   onSortChange: (sortBy: SortBy) => void;
-  onViewContract: (employee: Employee) => void;
+  onViewDocuments: (employee: Employee) => void;
 }
 
 function SortHeader({
@@ -50,7 +50,7 @@ export function EmployeeTable({
   sortBy,
   sortDir,
   onSortChange,
-  onViewContract,
+  onViewDocuments,
 }: EmployeeTableProps) {
   return (
     <div className="hidden overflow-x-auto md:block">
@@ -83,7 +83,7 @@ export function EmployeeTable({
               Trạng thái
             </th>
             <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Hợp đồng
+              Tài liệu
             </th>
           </tr>
         </thead>
@@ -109,7 +109,7 @@ export function EmployeeTable({
                 <StatusBadge status={employee.status} />
               </td>
               <td className="px-4 py-3">
-                <ContractDocumentLink employee={employee} onView={onViewContract} />
+                <EmployeeDocumentsLink employee={employee} onView={onViewDocuments} />
               </td>
             </tr>
           ))}

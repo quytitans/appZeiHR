@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { getErrorDetail } from "@/lib/errors";
+import { APPROVAL_LEVEL_LABELS, type ApprovalLevel } from "@/types/auth";
 import type { Position } from "@/types/personnel";
 
 export function PositionSection() {
@@ -17,24 +18,27 @@ export function PositionSection() {
 
   const [editing, setEditing] = useState<Position | "new" | null>(null);
   const [title, setTitle] = useState("");
+  const [approvalLevel, setApprovalLevel] = useState<ApprovalLevel>("staff");
   const [error, setError] = useState<string | null>(null);
   const [rowError, setRowError] = useState<{ id: number; message: string } | null>(null);
 
   function openCreate() {
     setTitle("");
+    setApprovalLevel("staff");
     setError(null);
     setEditing("new");
   }
 
   function openEdit(position: Position) {
     setTitle(position.title);
+    setApprovalLevel(position.approval_level);
     setError(null);
     setEditing(position);
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { title: title.trim() };
+      const payload = { title: title.trim(), approval_level: approvalLevel };
       if (editing && editing !== "new") {
         return updatePosition(editing.id, payload);
       }
@@ -98,6 +102,7 @@ export function PositionSection() {
           <thead>
             <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <th className="px-5 py-2.5">Tên chức vụ</th>
+              <th className="px-5 py-2.5">Cấp duyệt</th>
               <th className="px-5 py-2.5" />
             </tr>
           </thead>
@@ -110,6 +115,7 @@ export function PositionSection() {
                     <p className="mt-1 text-xs text-red-600">{rowError.message}</p>
                   )}
                 </td>
+                <td className="px-5 py-3 text-slate-600">{APPROVAL_LEVEL_LABELS[position.approval_level]}</td>
                 <td className="px-5 py-3">
                   <div className="flex justify-end gap-1">
                     <button
@@ -164,6 +170,27 @@ export function PositionSection() {
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600" htmlFor="position_level">
+                Cấp duyệt
+              </label>
+              <select
+                id="position_level"
+                value={approvalLevel}
+                onChange={(e) => setApprovalLevel(e.target.value as ApprovalLevel)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              >
+                {Object.entries(APPROVAL_LEVEL_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">
+                Quyết định luồng duyệt đơn nghỉ: Nhân viên → Trưởng phòng xác nhận → Giám đốc duyệt;
+                Trưởng phòng → Giám đốc duyệt; Giám đốc → CEO duyệt.
+              </p>
             </div>
           </form>
         </Modal>

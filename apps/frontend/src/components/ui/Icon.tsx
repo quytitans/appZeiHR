@@ -20,7 +20,8 @@ export type IconName =
   | "sort"
   | "edit"
   | "trash"
-  | "database";
+  | "database"
+  | "assets";
 
 const paths: Record<IconName, JSX.Element> = {
   personnel: (
@@ -60,7 +61,7 @@ const paths: Record<IconName, JSX.Element> = {
     </>
   ),
   "arrow-right": <path d="M5 12h14M13 6l6 6-6 6" />,
-  // Mark chữ "Z" (Zei Group HR) - đồng nhất với apps/frontend/public/favicon.svg
+  // Mark chữ "Z" (Zei OXA) - đồng nhất với apps/frontend/public/favicon.svg
   logo: <path d="M7 8h10L7 16h10" strokeWidth={2.4} />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   search: (
@@ -115,6 +116,13 @@ const paths: Record<IconName, JSX.Element> = {
       <ellipse cx="12" cy="6" rx="7.5" ry="3" />
       <path d="M4.5 6v12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6" />
       <path d="M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3" />
+    </>
+  ),
+  assets: (
+    <>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M4 7.5 12 12l8-4.5M12 12v9" />
+      <path d="m8 5.25 8 4.5" />
     </>
   ),
 };

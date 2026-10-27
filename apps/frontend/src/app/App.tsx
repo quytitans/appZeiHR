@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 
 import { UsersPage } from "@/features/admin/UsersPage";
+import { AssetsPage } from "@/features/assets/AssetsPage";
 import { AttendancePage } from "@/features/attendance/AttendancePage";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { BenefitsPage } from "@/features/benefits/BenefitsPage";
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/contracts" element={<ContractsPage />} />
       <Route path="/benefits" element={<BenefitsPage />} />
       <Route path="/attendance" element={<AttendancePage />} />
+      <Route path="/assets" element={<AssetsPage />} />
       <Route path="/admin/users" element={<UsersPage />} />
       <Route path="/master-data" element={<MasterDataPage />} />
     </Routes>

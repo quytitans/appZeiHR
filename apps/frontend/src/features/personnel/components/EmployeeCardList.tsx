@@ -1,16 +1,16 @@
 import { Link } from "react-router-dom";
 
-import { ContractDocumentLink } from "@/features/personnel/components/ContractDocumentLink";
+import { EmployeeDocumentsLink } from "@/features/personnel/components/EmployeeDocumentsLink";
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
 import { StatusBadge } from "@/features/personnel/components/StatusBadge";
 import type { Employee } from "@/types/personnel";
 
 interface EmployeeCardListProps {
   employees: Employee[];
-  onViewContract: (employee: Employee) => void;
+  onViewDocuments: (employee: Employee) => void;
 }
 
-export function EmployeeCardList({ employees, onViewContract }: EmployeeCardListProps) {
+export function EmployeeCardList({ employees, onViewDocuments }: EmployeeCardListProps) {
   return (
     <div className="divide-y divide-slate-100 md:hidden">
       {employees.map((employee) => (
@@ -35,7 +35,7 @@ export function EmployeeCardList({ employees, onViewContract }: EmployeeCardList
               {employee.department?.name && <dd>{employee.department.name}</dd>}
             </dl>
             <div className="mt-2">
-              <ContractDocumentLink employee={employee} onView={onViewContract} />
+              <EmployeeDocumentsLink employee={employee} onView={onViewDocuments} />
             </div>
           </div>
         </div>

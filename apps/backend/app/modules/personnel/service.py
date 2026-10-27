@@ -1,11 +1,18 @@
-from datetime import date
+import re
+import unicodedata
 
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.common.storage import delete_stored_file
-from app.models.personnel import Department, Employee, EmployeeDocument, Position
+from app.models.personnel import (
+    Department,
+    Employee,
+    EmployeeCodeRegistry,
+    EmployeeDocument,
+    Position,
+)
 from app.modules.personnel.schemas import (
     DepartmentCreate,
     DepartmentUpdate,
@@ -15,8 +22,8 @@ from app.modules.personnel.schemas import (
     PositionUpdate,
 )
 
-EMPLOYMENT_CONTRACT_DOC_TYPE = "employment_contract"
-EMPLOYEE_CODE_PREFIX = "ZEI"
+# Dùng khi họ tên không còn chữ cái nào sau khi bỏ dấu/ký tự đặc biệt
+EMPLOYEE_CODE_FALLBACK = "nv"
 
 SORTABLE_FIELDS = {
     "full_name": Employee.full_name,
@@ -149,27 +156,41 @@ def get_employee(db: Session, employee_id: int) -> Employee | None:
     return _employee_query(db).filter(Employee.id == employee_id).first()
 
 
-def generate_next_employee_code(db: Session) -> str:
-    """Sinh mã nhân viên tự động dạng ZEI<YYYYMM><STT 3 chữ số>, vd ZEI202608001.
+def employee_code_base(full_name: str) -> str:
+    """'Đặng Văn Long' -> 'longdv': tên + chữ cái đầu của họ và đệm, không dấu, chữ thường.
 
-    STT reset theo từng tháng, tính bằng cách lấy số lớn nhất đã dùng trong tháng hiện
-    tại + 1 (không dùng COUNT vì nhân viên có thể bị xoá làm lệch số thứ tự)."""
+    Bỏ mọi ký tự không phải a-z (kể cả chữ số) để phần số đuôi do
+    generate_employee_code() thêm vào không bị nhập nhằng."""
 
-    today = date.today()
-    prefix = f"{EMPLOYEE_CODE_PREFIX}{today.year:04d}{today.month:02d}"
+    plain = unicodedata.normalize("NFD", full_name.replace("Đ", "D").replace("đ", "d"))
+    plain = "".join(c for c in plain if unicodedata.category(c) != "Mn").lower()
+    words = [w for w in (re.sub(r"[^a-z]", "", w) for w in plain.split()) if w]
+    if not words:
+        return EMPLOYEE_CODE_FALLBACK
+    return words[-1] + "".join(w[0] for w in words[:-1])
 
-    existing_codes = (
-        db.query(Employee.employee_code)
-        .filter(Employee.employee_code.like(f"{prefix}%"))
+
+def generate_employee_code(db: Session, full_name: str) -> str:
+    """Sinh mã nhân viên: longdv, nếu đã từng cấp thì longdv1, longdv2...
+
+    Tra trong EmployeeCodeRegistry (mọi mã từng cấp, kể cả của nhân viên đã nghỉ/bị xoá)
+    chứ không chỉ bảng employees. Lấy số đuôi lớn nhất đã dùng + 1, không lấp chỗ trống."""
+
+    base = employee_code_base(full_name)
+    used_codes = (
+        db.query(EmployeeCodeRegistry.code)
+        .filter(EmployeeCodeRegistry.code.like(f"{base}%"))
         .all()
     )
-    max_seq = 0
-    for (code,) in existing_codes:
-        suffix = code[len(prefix) :]
-        if suffix.isdigit():
-            max_seq = max(max_seq, int(suffix))
+    max_suffix = -1
+    for (code,) in used_codes:
+        suffix = code[len(base) :]
+        if suffix == "":
+            max_suffix = max(max_suffix, 0)
+        elif suffix.isdigit():
+            max_suffix = max(max_suffix, int(suffix))
 
-    return f"{prefix}{max_seq + 1:03d}"
+    return base if max_suffix < 0 else f"{base}{max_suffix + 1}"
 
 
 def national_id_exists(db: Session, national_id: str, exclude_id: int | None = None) -> bool:
@@ -183,15 +204,19 @@ MAX_EMPLOYEE_CODE_RETRIES = 5
 
 
 def create_employee(db: Session, payload: EmployeeCreate) -> Employee:
-    """Sinh employee_code và tạo nhân viên trong cùng 1 bước (không sinh mã trước khi
-    người dùng bấm Lưu). Nếu 2 request tạo cùng lúc tính ra trùng mã (đụng độ hiếm gặp),
-    unique constraint ở DB sẽ chặn - retry sinh mã mới vài lần thay vì báo lỗi ngay."""
+    """Sinh employee_code và tạo nhân viên trong cùng 1 bước. Mã hiển thị trên form chỉ
+    là bản xem trước (GET /employees/code-preview), mã thật được chốt ở đây. Nếu 2 request
+    tạo cùng lúc tính ra trùng mã (đụng độ hiếm gặp), PK của EmployeeCodeRegistry sẽ chặn -
+    retry sinh mã mới vài lần thay vì báo lỗi ngay."""
 
     data = payload.model_dump()
     last_error: IntegrityError | None = None
 
     for _ in range(MAX_EMPLOYEE_CODE_RETRIES):
-        employee = Employee(**data, employee_code=generate_next_employee_code(db))
+        code = generate_employee_code(db, payload.full_name)
+        # Đăng ký mã cùng transaction: PK của registry chặn đụng độ, rollback thì bỏ cả 2
+        db.add(EmployeeCodeRegistry(code=code))
+        employee = Employee(**data, employee_code=code)
         db.add(employee)
         try:
             db.commit()
@@ -213,30 +238,15 @@ def update_employee(db: Session, employee: Employee, payload: EmployeeUpdate) ->
     return get_employee(db, employee.id)  # type: ignore[return-value]
 
 
-def add_contract_document(
-    db: Session, employee_id: int, file_name: str, file_url: str, replace: bool = False
+def add_document(
+    db: Session, employee_id: int, doc_type: str, file_name: str, file_url: str
 ) -> EmployeeDocument:
-    """Thêm hợp đồng lao động mới. Nếu replace=True, xóa hẳn (DB + file trên đĩa) các
-    hợp đồng cũ trước khi thêm - dùng cho lựa chọn "Thay thế" ở màn chi tiết nhân viên.
-    Nếu replace=False ("Bổ sung"), giữ nguyên tài liệu cũ, chỉ thêm bản mới (bản mới nhất
-    theo uploaded_at sẽ hiển thị là hợp đồng hiện hành - xem Employee.contract_document)."""
-
-    if replace:
-        old_documents = (
-            db.query(EmployeeDocument)
-            .filter(
-                EmployeeDocument.employee_id == employee_id,
-                EmployeeDocument.doc_type == EMPLOYMENT_CONTRACT_DOC_TYPE,
-            )
-            .all()
-        )
-        for old_document in old_documents:
-            delete_stored_file(old_document.file_url)
-            db.delete(old_document)
+    """Thêm tài liệu đính kèm hồ sơ (hợp đồng, phụ lục, tài liệu khác). Luôn thêm mới,
+    không ghi đè - gỡ file sai bằng delete_document()."""
 
     document = EmployeeDocument(
         employee_id=employee_id,
-        doc_type=EMPLOYMENT_CONTRACT_DOC_TYPE,
+        doc_type=doc_type,
         file_name=file_name,
         file_url=file_url,
     )
@@ -244,3 +254,18 @@ def add_contract_document(
     db.commit()
     db.refresh(document)
     return document
+
+
+def get_document(db: Session, employee_id: int, document_id: int) -> EmployeeDocument | None:
+    return (
+        db.query(EmployeeDocument)
+        .filter(EmployeeDocument.id == document_id, EmployeeDocument.employee_id == employee_id)
+        .first()
+    )
+
+
+def delete_document(db: Session, document: EmployeeDocument) -> None:
+    """Xóa hẳn tài liệu: bản ghi DB + file trên đĩa."""
+    delete_stored_file(document.file_url)
+    db.delete(document)
+    db.commit()

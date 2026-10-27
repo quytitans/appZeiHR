@@ -12,7 +12,9 @@ from app.modules.personnel.schemas import (
     DepartmentCreate,
     DepartmentOut,
     DepartmentUpdate,
+    EmployeeCodePreviewOut,
     EmployeeCreate,
+    EmployeeDocumentType,
     EmployeeOut,
     EmployeePageOut,
     EmployeeUpdate,
@@ -131,6 +133,20 @@ def list_employees(
     return EmployeePageOut(items=items, total=total, page=page, page_size=page_size)
 
 
+# Phải khai báo TRƯỚC /employees/{employee_id}, nếu không "code-preview" bị parse thành id
+@router.get(
+    "/employees/code-preview",
+    response_model=EmployeeCodePreviewOut,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def preview_employee_code(
+    full_name: str = Query(..., min_length=1, max_length=255), db: Session = Depends(get_db)
+):
+    """Mã nhân viên dự kiến cho form thêm mới. Chỉ để xem trước, không giữ chỗ - mã thật
+    được chốt lúc POST /employees và có thể tăng số đuôi nếu có người tạo trước."""
+    return EmployeeCodePreviewOut(employee_code=service.generate_employee_code(db, full_name))
+
+
 @router.get("/employees/{employee_id}", response_model=EmployeeOut)
 def get_employee(employee_id: int, db: Session = Depends(get_db)):
     employee = service.get_employee(db, employee_id)
@@ -155,8 +171,8 @@ def _assert_national_id_not_duplicate(
     dependencies=[Depends(require_roles(*MANAGE_ROLES))],
 )
 def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db)):
-    """employee_code KHÔNG nhận từ client - service.create_employee tự sinh mã ngay lúc
-    tạo (không phải lúc mở form) để tránh đụng độ giữa nhiều người dùng cùng thao tác."""
+    """employee_code KHÔNG nhận từ client - service.create_employee tự sinh mã từ họ tên
+    ngay lúc tạo để tránh đụng độ giữa nhiều người dùng cùng thao tác."""
     _assert_national_id_not_duplicate(db, payload.national_id)
     return service.create_employee(db, payload)
 
@@ -175,24 +191,36 @@ def update_employee(employee_id: int, payload: EmployeeUpdate, db: Session = Dep
 
 
 @router.post(
-    "/employees/{employee_id}/contract-document",
+    "/employees/{employee_id}/documents",
     response_model=EmployeeOut,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_roles(*MANAGE_ROLES))],
 )
-def upload_contract_document(
+def upload_document(
     employee_id: int,
     file: UploadFile = File(...),
-    replace: bool = Query(
-        False, description="True = xóa hợp đồng cũ (Thay thế), False = giữ lại (Bổ sung)"
-    ),
+    doc_type: EmployeeDocumentType = Query("employment_contract"),
     db: Session = Depends(get_db),
 ):
-    """Tải lên file hợp đồng lao động PDF cho nhân viên - SRS 3.1.2.A/D."""
+    """Tải lên tài liệu PDF (hợp đồng, phụ lục, tài liệu khác) cho nhân viên - SRS
+    3.1.2.A/D. Luôn thêm mới, giữ nguyên các tài liệu đã có."""
     employee = service.get_employee(db, employee_id)
     if not employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy nhân viên")
 
     file_name, file_url = save_pdf_upload(file, subdir="employee_documents")
-    service.add_contract_document(db, employee_id, file_name, file_url, replace=replace)
+    service.add_document(db, employee_id, doc_type, file_name, file_url)
+    return service.get_employee(db, employee_id)
+
+
+@router.delete(
+    "/employees/{employee_id}/documents/{document_id}",
+    response_model=EmployeeOut,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def delete_document(employee_id: int, document_id: int, db: Session = Depends(get_db)):
+    document = service.get_document(db, employee_id, document_id)
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tài liệu")
+    service.delete_document(db, document)
     return service.get_employee(db, employee_id)

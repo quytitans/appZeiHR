@@ -5,7 +5,7 @@ export interface ModuleConfig {
   title: string;
   description: string;
   path: string;
-  icon: "personnel" | "contracts" | "benefits" | "attendance" | "users" | "database";
+  icon: "personnel" | "contracts" | "benefits" | "attendance" | "users" | "database" | "assets";
   /** Vai trò được phép truy cập, khớp bảng phân quyền SRS mục 2.1 */
   roles: Role[];
 }
@@ -33,6 +33,15 @@ export const MODULES: ModuleConfig[] = [
     description: "Check-in/out, đăng ký nghỉ phép năm, nghỉ ốm, ngủ bù, thai sản.",
     path: "/attendance",
     icon: "attendance",
+    roles: ["employee", "line_manager", "hr_admin", "system_admin"],
+  },
+  {
+    // Placeholder - chưa có backend, chờ phát triển sau
+    key: "assets",
+    title: "Quản lý tài sản",
+    description: "Theo dõi tài sản, thiết bị cấp phát cho nhân viên, bàn giao và thu hồi.",
+    path: "/assets",
+    icon: "assets",
     roles: ["employee", "line_manager", "hr_admin", "system_admin"],
   },
   {

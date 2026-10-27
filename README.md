@@ -1,11 +1,17 @@
-# Zei Group HR
+# Zei OXA
 
-Web App Quản lý Nhân sự **Zei Group HR**, xây theo `srs_quan_ly_nhan_su.md` (đọc mục 6 "Phụ lục: Trạng thái triển khai hiện tại" trong file đó để biết chính xác hiện trạng code).
+Web App Quản lý Nhân sự **Zei OXA**, xây theo `srs_quan_ly_nhan_su.md` (đọc mục 6 "Phụ lục: Trạng thái triển khai hiện tại" trong file đó để biết chính xác hiện trạng code).
 
 ## Trạng thái hiện tại
 
-- **Hồ sơ nhân sự (`/personnel`)**: triển khai đầy đủ Giai đoạn 1 — thêm mới hồ sơ (mã nhân viên **tự động sinh** dạng `ZEI<YYYYMM><STT 3 số>`, vd `ZEI202608001`, không cho sửa tay), duplicate-check CCCD, danh sách responsive (bảng desktop / thẻ mobile), tìm kiếm real-time đa trường có debounce, phân trang & sắp xếp (đồng bộ vào URL query string để giữ trạng thái khi bấm Back), upload + xem PDF hợp đồng lao động qua modal. Bấm tên nhân viên → trang chi tiết (`/personnel/:id`) xem/sửa đầy đủ thông tin.
-- **Hợp đồng, Phúc lợi, Chấm công & Nghỉ phép**: đã có model dữ liệu + API CRUD cơ bản, frontend còn là trang placeholder (`/contracts`, `/benefits`, `/attendance`, chưa có link ở trang chủ) — triển khai chi tiết ở các lần sau.
+- **Hồ sơ nhân sự (`/personnel`)**: triển khai đầy đủ Giai đoạn 1 — thêm mới hồ sơ (mã nhân viên **tự động sinh** từ họ tên dạng tên + chữ cái đầu họ/đệm, vd Đặng Văn Long → `longdv`, trùng với mã từng cấp (kể cả nhân viên đã nghỉ/bị xoá) thì thêm số `longdv1`, `longdv2`...; hiển thị xem trước ngay trên form, không cho sửa tay), duplicate-check CCCD, danh sách responsive (bảng desktop / thẻ mobile), tìm kiếm real-time đa trường có debounce, phân trang & sắp xếp (đồng bộ vào URL query string để giữ trạng thái khi bấm Back), upload + xem PDF hợp đồng lao động qua modal. Bấm tên nhân viên → trang chi tiết (`/personnel/:id`) xem/sửa đầy đủ thông tin.
+- **Chấm công & Nghỉ phép (`/attendance`)**: ticket nghỉ phép theo workflow nhiều cấp, gồm 3 luồng:
+  - Nhân viên → Trưởng phòng xác nhận → Giám đốc duyệt.
+  - Trưởng phòng → Giám đốc duyệt.
+  - Giám đốc → CEO duyệt.
+
+  Cấp duyệt gắn theo Chức vụ trong Master Data. Nhân viên chỉ thấy ticket của mình; cấp quản lý có thêm tab "Chờ tôi xử lý". Có quỹ ngày nghỉ theo từng loại: form chặn gửi khi vượt quỹ, HR cấu hình quỹ cho từng nhân viên. Chi tiết ở SRS mục 3.4.1 và 3.4.2.
+- **Hợp đồng, Phúc lợi, Quản lý tài sản**: frontend còn là trang placeholder (`/contracts`, `/benefits`, `/assets`), triển khai chi tiết ở các lần sau.
 - **Auth/RBAC**: JWT + 4 vai trò hoạt động đầy đủ, khớp bảng phân quyền SRS mục 2.1.
 - **Database**: MySQL, schema quản lý bằng Alembic migration (không dùng `create_all`).
 - **Màu chủ đạo (brand color)**: thang màu mint/ngọc lam dùng xuyên suốt UI — xem [Bảng màu thương hiệu](#bảng-màu-thương-hiệu-brand-color) bên dưới.
@@ -35,7 +41,7 @@ DEPLOYMENT.md       # cấu hình & lưu ý khi deploy lên hosting
 
 ```bash
 cp .env.example .env
-# Sinh SECRET_KEY và mật khẩu MySQL mới thay vì dùng giá trị mẫu, xem srs_quan_ly_nhan_su.md mục 6.4.
+# Sinh SECRET_KEY và mật khẩu MySQL mới thay vì dùng giá trị mẫu, xem srs_quan_ly_nhan_su.md mục 6.5.
 docker compose up -d --build
 ```
 
@@ -51,6 +57,25 @@ Mặc định các cổng là `FRONTEND_PORT=5173`, `BACKEND_PORT=8000`, `MYSQL_
 - Frontend: http://localhost:5173
 - Backend Swagger UI: http://localhost:8000/docs (hoặc cổng đã đổi)
 - Adminer (xem DB): http://localhost:8080 (server: `db`, user/pass theo `.env`)
+
+### Dữ liệu test (chỉ môi trường dev)
+
+```bash
+docker compose exec backend python scripts/seed_test_data.py
+```
+
+Lệnh này seed các dữ liệu sau:
+- Phòng ban, chức vụ (đã gán cấp duyệt) và 17 nhân viên kèm tài khoản: 10 nhân viên, 3 trưởng phòng, 2 giám đốc, 1 CEO, 1 HR. Cộng thêm `admin@hrm.local` là đủ 18 tài khoản.
+- Chuỗi quản lý: nhân viên → trưởng phòng → Giám đốc → CEO.
+- Hợp đồng, phúc lợi, chấm công 2 tuần gần nhất, và đơn nghỉ ở đủ các trạng thái của workflow.
+
+Thông tin tài khoản:
+- Email: `<mã NV>@zeigroup.test`.
+- Mật khẩu chung: `Test@123`.
+
+Script chạy lại nhiều lần vẫn an toàn: nếu đã có dữ liệu thì tự bỏ qua. Muốn làm lại từ đầu: `docker compose down -v` rồi `up -d`, sau đó chạy lại lệnh trên.
+
+Khi chạy dev, chân trang có nút **"Dev · đổi tài khoản"** (TẠM THỜI). Bấm vào sẽ mở dropdown liệt kê 18 tài khoản test, nhóm theo Nhân viên / Trưởng phòng / Giám đốc / CEO / HR / Admin; chọn tài khoản nào thì đăng nhập ngay bằng tài khoản đó. Danh sách nằm ở [`DevRoleSwitcher.tsx`](apps/frontend/src/components/layout/DevRoleSwitcher.tsx) và phải khớp với seed. Khi hoàn thiện app thì xóa file này và dòng `<DevRoleSwitcher />` trong `PageShell.tsx`.
 
 ## Chạy thủ công (không dùng Docker)
 
@@ -90,7 +115,7 @@ Mở http://localhost:5173.
 | `brand-700` | `#2C9076` | Hover/active state, text nhấn |
 | `brand-900` / `brand-950` | `#1D5E4C` / `#123B30` | Text đậm trên nền sáng |
 
-Logo/favicon là mark chữ **"Z"** (Zei Group HR) trên nền `brand-600`, định nghĩa tại [`apps/frontend/public/favicon.svg`](apps/frontend/public/favicon.svg) (dùng cho tab trình duyệt) và icon `logo` trong [`Icon.tsx`](apps/frontend/src/components/ui/Icon.tsx) (dùng trong Header/Login) — cả hai dùng chung 1 path để đồng nhất.
+Logo/favicon là mark chữ **"Z"** (Zei OXA) trên nền `brand-600`, định nghĩa tại [`apps/frontend/public/favicon.svg`](apps/frontend/public/favicon.svg) (dùng cho tab trình duyệt) và icon `logo` trong [`Icon.tsx`](apps/frontend/src/components/ui/Icon.tsx) (dùng trong Header/Login) — cả hai dùng chung 1 path để đồng nhất.
 
 ## Kiến trúc backend (tóm tắt)
 
