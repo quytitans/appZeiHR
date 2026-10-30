@@ -21,7 +21,10 @@ export type IconName =
   | "edit"
   | "trash"
   | "database"
-  | "assets";
+  | "assets"
+  | "check"
+  | "copy"
+  | "key";
 
 const paths: Record<IconName, JSX.Element> = {
   personnel: (
@@ -123,6 +126,19 @@ const paths: Record<IconName, JSX.Element> = {
       <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
       <path d="M4 7.5 12 12l8-4.5M12 12v9" />
       <path d="m8 5.25 8 4.5" />
+    </>
+  ),
+  check: <path d="M5 13l4.5 4.5L19 7" />,
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="1.5" />
+      <path d="M15 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v7.5A1.5 1.5 0 0 0 6 15h2.5" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="8" cy="15.5" r="3.5" />
+      <path d="M10.5 13 18 5.5M15.5 8 18 5.5M18 5.5 20.5 8" />
     </>
   ),
 };

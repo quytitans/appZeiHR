@@ -6,6 +6,7 @@ import { getEmployee, listDepartments, listPositions, updateEmployee } from "@/a
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { EmployeeAccountSection } from "@/features/personnel/components/EmployeeAccountSection";
 import { EmployeeAvatar } from "@/features/personnel/components/EmployeeAvatar";
 import { EmployeeDocumentsModal } from "@/features/personnel/components/EmployeeDocumentsModal";
 import { EmployeeDocumentsSection } from "@/features/personnel/components/EmployeeDocumentsSection";
@@ -27,6 +28,7 @@ const EMPTY_FORM: EmployeeFormValues = {
   department_id: "",
   position_id: "",
   start_date: "",
+  role: "employee", // không dùng ở form sửa (showAccountRole=false) - giữ để khớp type
 };
 
 function toFormValues(employee: Employee): EmployeeFormValues {
@@ -40,6 +42,7 @@ function toFormValues(employee: Employee): EmployeeFormValues {
     department_id: employee.department_id ? String(employee.department_id) : "",
     position_id: employee.position_id ? String(employee.position_id) : "",
     start_date: employee.start_date ?? "",
+    role: "employee",
   };
 }
 
@@ -204,6 +207,10 @@ export function EmployeeDetailPage() {
                 </div>
               )}
             </form>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <EmployeeAccountSection employee={employee} canManage={canManage} />
+            </div>
 
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <EmployeeDocumentsSection

@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.personnel import ApprovalLevel, EmployeeStatus, Gender
+from app.models.user import Role
 
 
 class DepartmentCreate(BaseModel):
@@ -59,6 +60,10 @@ class EmployeeCreate(BaseModel):
     manager_id: int | None = None
     start_date: date | None = None
 
+    # Chỉ dùng khi tạo tài khoản đăng nhập (company_email có giá trị) - xem
+    # service.create_employee(). Không cho chọn SYSTEM_ADMIN qua form này.
+    role: Role = Role.EMPLOYEE
+
 
 class EmployeeUpdate(EmployeeCreate):
     pass
@@ -109,11 +114,28 @@ class EmployeeOut(BaseModel):
     manager_id: int | None
     start_date: date | None
     status: EmployeeStatus
+    # None = chưa có tài khoản đăng nhập liên kết - frontend dùng để hiện nút "Tạo tài khoản"
+    user_id: int | None
 
     department: DepartmentBrief | None = None
     position: PositionBrief | None = None
     contract_document: EmployeeDocumentOut | None = None
     documents: list[EmployeeDocumentOut] = []
+
+
+class EmployeeCreateResult(EmployeeOut):
+    """Response của POST /employees và POST /employees/{id}/account. temp_password chỉ
+    xuất hiện đúng 1 lần ở đây (không lưu plaintext, không trả lại ở bất kỳ GET nào) - HR
+    phải copy ngay và gửi cho nhân viên."""
+
+    temp_password: str | None = None
+
+
+class CreateAccountPayload(BaseModel):
+    """Tạo tài khoản đăng nhập cho nhân viên đã tồn tại nhưng chưa có account (vd nhân
+    viên tạo trước khi tính năng này có). Yêu cầu nhân viên đã có company_email."""
+
+    role: Role = Role.EMPLOYEE
 
 
 class EmployeeCodePreviewOut(BaseModel):

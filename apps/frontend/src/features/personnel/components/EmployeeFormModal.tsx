@@ -10,10 +10,11 @@ import {
 } from "@/api/personnel";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { AccountCredentialsCard } from "@/features/personnel/components/AccountCredentialsCard";
 import { EmployeeFormFields } from "@/features/personnel/components/EmployeeFormFields";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { getErrorDetail } from "@/lib/errors";
-import type { EmployeeFormValues } from "@/types/personnel";
+import type { EmployeeCreateResult, EmployeeFormValues } from "@/types/personnel";
 
 interface EmployeeFormModalProps {
   onClose: () => void;
@@ -30,6 +31,7 @@ const EMPTY_FORM: EmployeeFormValues = {
   department_id: "",
   position_id: "",
   start_date: "",
+  role: "employee",
 };
 
 export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps) {
@@ -56,6 +58,8 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
     staleTime: 0,
   });
 
+  const [created, setCreated] = useState<EmployeeCreateResult | null>(null);
+
   const mutation = useMutation({
     mutationFn: async () => {
       // Mã trên form chỉ là xem trước - backend chốt mã thật ngay trong POST này nên
@@ -70,6 +74,7 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
         department_id: form.department_id ? Number(form.department_id) : null,
         position_id: form.position_id ? Number(form.position_id) : null,
         start_date: form.start_date || null,
+        role: form.role,
       });
 
       if (contractFile) {
@@ -77,9 +82,14 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
       }
       return employee;
     },
-    onSuccess: () => {
+    onSuccess: (employee) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
-      onCreated();
+      if (employee.temp_password) {
+        // Có tài khoản mới tạo - dừng lại hiển thị mật khẩu tạm, HR phải copy trước khi đóng
+        setCreated(employee);
+      } else {
+        onCreated();
+      }
     },
     onError: (err) => {
       setError(getErrorDetail(err) ?? "Không thể tạo hồ sơ nhân sự. Vui lòng thử lại.");
@@ -94,6 +104,18 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
     e.preventDefault();
     setError(null);
     mutation.mutate();
+  }
+
+  if (created && created.temp_password && created.company_email) {
+    return (
+      <Modal title="Đã tạo hồ sơ nhân sự" onClose={onCreated} size="lg">
+        <AccountCredentialsCard
+          email={created.company_email}
+          tempPassword={created.temp_password}
+          onDone={onCreated}
+        />
+      </Modal>
+    );
   }
 
   return (
@@ -129,7 +151,13 @@ export function EmployeeFormModal({ onClose, onCreated }: EmployeeFormModalProps
           </span>
         </div>
 
-        <EmployeeFormFields form={form} update={update} departments={departments} positions={positions} />
+        <EmployeeFormFields
+          form={form}
+          update={update}
+          departments={departments}
+          positions={positions}
+          showAccountRole
+        />
 
         <div>
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">

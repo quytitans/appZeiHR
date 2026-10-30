@@ -1,3 +1,4 @@
+import { ROLE_LABELS, type Role } from "@/types/auth";
 import type { Department, EmployeeFormValues, Position } from "@/types/personnel";
 
 interface EmployeeFormFieldsProps {
@@ -6,7 +7,13 @@ interface EmployeeFormFieldsProps {
   departments: Department[];
   positions: Position[];
   disabled?: boolean;
+  /** Chỉ bật ở form TẠO MỚI - sửa hồ sơ không đổi vai trò tài khoản đã có qua đây (xem
+   * EmployeeAccountSection cho thao tác quản lý tài khoản của nhân viên đã tồn tại). */
+  showAccountRole?: boolean;
 }
+
+// system_admin không gán qua form này - chỉ cấp tay (seed/trực tiếp trong DB) cho quản trị hệ thống
+const ASSIGNABLE_ROLES: Role[] = ["employee", "line_manager", "hr_admin"];
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
@@ -19,6 +26,7 @@ export function EmployeeFormFields({
   departments,
   positions,
   disabled = false,
+  showAccountRole = false,
 }: EmployeeFormFieldsProps) {
   return (
     <div className="space-y-5">
@@ -98,6 +106,10 @@ export function EmployeeFormFields({
               onChange={(e) => update("company_email", e.target.value)}
               className={inputClass}
             />
+            <p className="mt-1 text-[11px] text-slate-400">
+              Nhập email để tự tạo tài khoản đăng nhập cho nhân viên - để trống thì chưa có
+              tài khoản, có thể tạo sau ở trang chi tiết.
+            </p>
           </div>
           <div>
             <label className={labelClass} htmlFor="phone">
@@ -111,6 +123,26 @@ export function EmployeeFormFields({
               className={inputClass}
             />
           </div>
+          {showAccountRole && form.company_email.trim() && (
+            <div>
+              <label className={labelClass} htmlFor="role">
+                Vai trò tài khoản
+              </label>
+              <select
+                id="role"
+                disabled={disabled}
+                value={form.role}
+                onChange={(e) => update("role", e.target.value as Role)}
+                className={inputClass}
+              >
+                {ASSIGNABLE_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {ROLE_LABELS[role]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 

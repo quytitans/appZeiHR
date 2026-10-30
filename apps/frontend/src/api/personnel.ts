@@ -1,9 +1,10 @@
 import { apiClient } from "@/api/client";
-import type { ApprovalLevel } from "@/types/auth";
+import type { ApprovalLevel, Role } from "@/types/auth";
 import type {
   Department,
   DocumentType,
   Employee,
+  EmployeeCreateResult,
   EmployeePage,
   Position,
   SortBy,
@@ -33,10 +34,23 @@ export interface CreateEmployeePayload {
   department_id?: number | null;
   position_id?: number | null;
   start_date?: string | null;
+  /** Vai trò tài khoản đăng nhập - chỉ có hiệu lực khi company_email được điền */
+  role?: Role;
 }
 
-export async function createEmployee(payload: CreateEmployeePayload): Promise<Employee> {
-  const { data } = await apiClient.post<Employee>("/personnel/employees", payload);
+export async function createEmployee(payload: CreateEmployeePayload): Promise<EmployeeCreateResult> {
+  const { data } = await apiClient.post<EmployeeCreateResult>("/personnel/employees", payload);
+  return data;
+}
+
+export async function createEmployeeAccount(
+  employeeId: number,
+  role: Role,
+): Promise<EmployeeCreateResult> {
+  const { data } = await apiClient.post<EmployeeCreateResult>(
+    `/personnel/employees/${employeeId}/account`,
+    { role },
+  );
   return data;
 }
 

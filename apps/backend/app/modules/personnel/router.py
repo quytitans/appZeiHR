@@ -9,11 +9,13 @@ from app.db.session import get_db
 from app.models.user import Role
 from app.modules.personnel import service
 from app.modules.personnel.schemas import (
+    CreateAccountPayload,
     DepartmentCreate,
     DepartmentOut,
     DepartmentUpdate,
     EmployeeCodePreviewOut,
     EmployeeCreate,
+    EmployeeCreateResult,
     EmployeeDocumentType,
     EmployeeOut,
     EmployeePageOut,
@@ -164,17 +166,35 @@ def _assert_national_id_not_duplicate(
         )
 
 
+def _assert_company_email_not_duplicate(
+    db: Session, email: str | None, exclude_id: int | None = None
+) -> None:
+    if not email:
+        return
+    if service.company_email_exists(db, email, exclude_id):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email đã được sử dụng")
+    if service.login_email_exists(db, email):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email này đã là tài khoản đăng nhập của người khác"
+        )
+
+
 @router.post(
     "/employees",
-    response_model=EmployeeOut,
+    response_model=EmployeeCreateResult,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_roles(*MANAGE_ROLES))],
 )
 def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db)):
     """employee_code KHÔNG nhận từ client - service.create_employee tự sinh mã từ họ tên
-    ngay lúc tạo để tránh đụng độ giữa nhiều người dùng cùng thao tác."""
+    ngay lúc tạo để tránh đụng độ giữa nhiều người dùng cùng thao tác. Nếu có company_email,
+    tự tạo kèm tài khoản đăng nhập - response.temp_password chỉ xuất hiện đúng lần này."""
     _assert_national_id_not_duplicate(db, payload.national_id)
-    return service.create_employee(db, payload)
+    _assert_company_email_not_duplicate(db, payload.company_email)
+    employee, temp_password = service.create_employee(db, payload)
+    result = EmployeeCreateResult.model_validate(employee)
+    result.temp_password = temp_password
+    return result
 
 
 @router.put(
@@ -187,7 +207,40 @@ def update_employee(employee_id: int, payload: EmployeeUpdate, db: Session = Dep
     if not employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy nhân viên")
     _assert_national_id_not_duplicate(db, payload.national_id, exclude_id=employee_id)
+    _assert_company_email_not_duplicate(db, payload.company_email, exclude_id=employee_id)
     return service.update_employee(db, employee, payload)
+
+
+@router.post(
+    "/employees/{employee_id}/account",
+    response_model=EmployeeCreateResult,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(*MANAGE_ROLES))],
+)
+def create_employee_account(
+    employee_id: int, payload: CreateAccountPayload, db: Session = Depends(get_db)
+):
+    """Tạo tài khoản đăng nhập cho nhân viên đã có sẵn nhưng chưa được gắn account (vd nhân
+    viên tạo trước khi tính năng tự-tạo-tài-khoản-lúc-thêm-mới có)."""
+    employee = service.get_employee(db, employee_id)
+    if not employee:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy nhân viên")
+    if employee.user_id is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Nhân viên đã có tài khoản")
+    if not employee.company_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nhân viên cần có Email trước khi tạo tài khoản - cập nhật hồ sơ trước",
+        )
+    if service.login_email_exists(db, employee.company_email):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email này đã là tài khoản đăng nhập của người khác"
+        )
+
+    temp_password = service.create_account_for_employee(db, employee, payload.role)
+    result = EmployeeCreateResult.model_validate(employee)
+    result.temp_password = temp_password
+    return result
 
 
 @router.post(

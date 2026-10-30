@@ -1,4 +1,4 @@
-import type { ApprovalLevel } from "@/types/auth";
+import type { ApprovalLevel, Role } from "@/types/auth";
 
 export type Gender = "male" | "female" | "other";
 export type EmployeeStatus = "active" | "on_leave" | "terminated";
@@ -62,11 +62,18 @@ export interface Employee {
   manager_id: number | null;
   start_date: string | null;
   status: EmployeeStatus;
+  /** null = chưa có tài khoản đăng nhập liên kết */
+  user_id: number | null;
   department: { id: number; name: string } | null;
   position: { id: number; title: string } | null;
   contract_document: EmployeeDocument | null;
   /** Toàn bộ tài liệu đính kèm, mới nhất lên đầu */
   documents: EmployeeDocument[];
+}
+
+/** Response của tạo nhân viên / tạo tài khoản - temp_password chỉ có đúng 1 lần ngay sau khi tạo */
+export interface EmployeeCreateResult extends Employee {
+  temp_password: string | null;
 }
 
 export interface EmployeePage {
@@ -86,6 +93,8 @@ export interface EmployeeFormValues {
   department_id: string;
   position_id: string;
   start_date: string;
+  /** Vai trò tài khoản - chỉ áp dụng khi có company_email */
+  role: Role;
 }
 
 export type SortBy = "full_name" | "start_date";

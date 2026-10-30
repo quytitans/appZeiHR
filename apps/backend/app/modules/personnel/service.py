@@ -1,4 +1,5 @@
 import re
+import secrets
 import unicodedata
 
 from sqlalchemy import func, or_
@@ -6,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.common.storage import delete_stored_file
+from app.core.security import hash_password
 from app.models.personnel import (
     Department,
     Employee,
@@ -13,6 +15,7 @@ from app.models.personnel import (
     EmployeeDocument,
     Position,
 )
+from app.models.user import Role, User
 from app.modules.personnel.schemas import (
     DepartmentCreate,
     DepartmentUpdate,
@@ -21,6 +24,10 @@ from app.modules.personnel.schemas import (
     PositionCreate,
     PositionUpdate,
 )
+
+# Các field của EmployeeCreate/EmployeeUpdate KHÔNG map trực tiếp vào cột nào của Employee
+# (role thuộc về User, không phải Employee) - phải loại trước khi Employee(**data).
+_NON_EMPLOYEE_FIELDS = {"role"}
 
 # Dùng khi họ tên không còn chữ cái nào sau khi bỏ dấu/ký tự đặc biệt
 EMPLOYEE_CODE_FALLBACK = "nv"
@@ -200,16 +207,36 @@ def national_id_exists(db: Session, national_id: str, exclude_id: int | None = N
     return db.query(query.exists()).scalar()
 
 
+def company_email_exists(db: Session, email: str, exclude_id: int | None = None) -> bool:
+    query = db.query(Employee).filter(Employee.company_email == email)
+    if exclude_id:
+        query = query.filter(Employee.id != exclude_id)
+    return db.query(query.exists()).scalar()
+
+
+def login_email_exists(db: Session, email: str) -> bool:
+    """company_email dùng làm email đăng nhập (User.email) - kiểm tra riêng bảng users vì
+    đây là 2 cột unique độc lập (Employee.company_email và User.email)."""
+    return db.query(db.query(User).filter(User.email == email).exists()).scalar()
+
+
+def generate_temp_password() -> str:
+    return secrets.token_urlsafe(9)
+
+
 MAX_EMPLOYEE_CODE_RETRIES = 5
 
 
-def create_employee(db: Session, payload: EmployeeCreate) -> Employee:
+def create_employee(db: Session, payload: EmployeeCreate) -> tuple[Employee, str | None]:
     """Sinh employee_code và tạo nhân viên trong cùng 1 bước. Mã hiển thị trên form chỉ
     là bản xem trước (GET /employees/code-preview), mã thật được chốt ở đây. Nếu 2 request
     tạo cùng lúc tính ra trùng mã (đụng độ hiếm gặp), PK của EmployeeCodeRegistry sẽ chặn -
-    retry sinh mã mới vài lần thay vì báo lỗi ngay."""
+    retry sinh mã mới vài lần thay vì báo lỗi ngay.
 
-    data = payload.model_dump()
+    Nếu payload có company_email, tự tạo luôn tài khoản đăng nhập (User) gắn với nhân viên -
+    trả về (employee, temp_password); không có email thì (employee, None)."""
+
+    data = payload.model_dump(exclude=_NON_EMPLOYEE_FIELDS)
     last_error: IntegrityError | None = None
 
     for _ in range(MAX_EMPLOYEE_CODE_RETRIES):
@@ -217,6 +244,18 @@ def create_employee(db: Session, payload: EmployeeCreate) -> Employee:
         # Đăng ký mã cùng transaction: PK của registry chặn đụng độ, rollback thì bỏ cả 2
         db.add(EmployeeCodeRegistry(code=code))
         employee = Employee(**data, employee_code=code)
+
+        temp_password: str | None = None
+        if payload.company_email:
+            temp_password = generate_temp_password()
+            user = User(
+                email=payload.company_email,
+                hashed_password=hash_password(temp_password),
+                role=payload.role,
+                is_active=True,
+            )
+            employee.user = user
+
         db.add(employee)
         try:
             db.commit()
@@ -225,17 +264,35 @@ def create_employee(db: Session, payload: EmployeeCreate) -> Employee:
             last_error = exc
             continue
         db.refresh(employee)
-        return get_employee(db, employee.id)  # type: ignore[return-value]
+        return get_employee(db, employee.id), temp_password  # type: ignore[return-value]
 
     raise last_error or RuntimeError("Không thể sinh mã nhân viên duy nhất")
 
 
 def update_employee(db: Session, employee: Employee, payload: EmployeeUpdate) -> Employee:
-    for field, value in payload.model_dump().items():
+    for field, value in payload.model_dump(exclude=_NON_EMPLOYEE_FIELDS).items():
         setattr(employee, field, value)
     db.commit()
     db.refresh(employee)
     return get_employee(db, employee.id)  # type: ignore[return-value]
+
+
+def create_account_for_employee(db: Session, employee: Employee, role: Role) -> str:
+    """Tạo tài khoản đăng nhập cho nhân viên đã tồn tại nhưng chưa có (vd tạo trước khi
+    tính năng tự-tạo-tài-khoản-lúc-thêm-mới có). Trả về mật khẩu tạm (plaintext, 1 lần)."""
+
+    temp_password = generate_temp_password()
+    user = User(
+        email=employee.company_email,
+        hashed_password=hash_password(temp_password),
+        role=role,
+        is_active=True,
+    )
+    employee.user = user
+    db.add(user)
+    db.commit()
+    db.refresh(employee)
+    return temp_password
 
 
 def add_document(
